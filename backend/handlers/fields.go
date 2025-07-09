@@ -22,12 +22,20 @@ func NewFieldHandler(firestoreService *services.FirestoreService) *FieldHandler 
 	}
 }
 
+// @Summary Get all fields
+// @Description Get a list of all fields for the user
+// @Tags fields
+// @Produce  json
+// @Security ApiKeyAuth
+// @Success 200 {object} models.SuccessResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /fields [get]
 func (fh *FieldHandler) GetFields(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
 	ctx := fh.firestoreService.Context()
-	query := fh.firestoreService.Fields()
+	query := fh.firestoreService.Fields().Query
 
 	// Filter by owner (non-admin users can only see their fields)
 	if user.Role != "admin" {
@@ -56,6 +64,17 @@ func (fh *FieldHandler) GetFields(c *gin.Context) {
 	})
 }
 
+// @Summary Create a new field
+// @Description Create a new field for the user
+// @Tags fields
+// @Accept  json
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param field body models.CreateFieldRequest true "Field object that needs to be added"
+// @Success 201 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /fields [post]
 func (fh *FieldHandler) CreateField(c *gin.Context) {
 	var req models.CreateFieldRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -97,6 +116,16 @@ func (fh *FieldHandler) CreateField(c *gin.Context) {
 	})
 }
 
+// @Summary Get a field by ID
+// @Description Get a single field by its ID
+// @Tags fields
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "Field ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Router /fields/{id} [get]
 func (fh *FieldHandler) GetField(c *gin.Context) {
 	fieldID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -126,6 +155,20 @@ func (fh *FieldHandler) GetField(c *gin.Context) {
 	})
 }
 
+// @Summary Update a field
+// @Description Update an existing field
+// @Tags fields
+// @Accept  json
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "Field ID"
+// @Param field body object true "Field object that needs to be updated"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /fields/{id} [put]
 func (fh *FieldHandler) UpdateField(c *gin.Context) {
 	fieldID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -173,7 +216,7 @@ func (fh *FieldHandler) UpdateField(c *gin.Context) {
 		updates = append(updates, firestore.Update{Path: key, Value: value})
 	}
 
-	_, err = fh.firestoreService.Fields().Doc(fieldID).Update(ctx, updates...)
+	_, err = fh.firestoreService.Fields().Doc(fieldID).Update(ctx, updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
@@ -199,6 +242,17 @@ func (fh *FieldHandler) UpdateField(c *gin.Context) {
 	})
 }
 
+// @Summary Delete a field
+// @Description Delete a field by its ID
+// @Tags fields
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "Field ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /fields/{id} [delete]
 func (fh *FieldHandler) DeleteField(c *gin.Context) {
 	fieldID := c.Param("id")
 	currentUser, _ := c.Get("user")

@@ -135,26 +135,26 @@ type Claims struct {
 
 // PaginationParams represents pagination parameters
 type PaginationParams struct {
-	Page   int `form:"page,default=1"`
-	Limit  int `form:"limit,default=20"`
-	Status string `form:"status"`
+	Page    int    `form:"page,default=1"`
+	Limit   int    `form:"limit,default=20"`
+	Status  string `form:"status"`
 	FieldID string `form:"field_id"`
 }
 
 // DashboardData represents dashboard analytics data
 type DashboardData struct {
-	TotalSubmissions     int                    `json:"total_submissions"`
-	SubmissionsByStatus  map[string]int         `json:"submissions_by_status"`
-	SubmissionsByStage   map[string]int         `json:"submissions_by_stage"`
-	RecentSubmissions    []Submission           `json:"recent_submissions"`
-	LastUpdated          time.Time              `json:"last_updated"`
+	TotalSubmissions    int            `json:"total_submissions"`
+	SubmissionsByStatus map[string]int `json:"submissions_by_status"`
+	SubmissionsByStage  map[string]int `json:"submissions_by_stage"`
+	RecentSubmissions   []Submission   `json:"recent_submissions"`
+	LastUpdated         time.Time      `json:"last_updated"`
 }
 
 // TrendsData represents trends analytics data
 type TrendsData struct {
-	DailySubmissions map[string]int            `json:"daily_submissions"`
-	StageProgression map[string][]string       `json:"stage_progression"`
-	Period           map[string]interface{}    `json:"period"`
+	DailySubmissions map[string]int         `json:"daily_submissions"`
+	StageProgression map[string][]string    `json:"stage_progression"`
+	Period           map[string]interface{} `json:"period"`
 }
 
 // ReportData represents report data

@@ -6,18 +6,47 @@ import (
 	"net/http"
 	"os"
 
+	_ "rice-monitor-api/docs"
 	"rice-monitor-api/handlers"
 	"rice-monitor-api/middleware"
 	"rice-monitor-api/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
+	err := godotenv.Load() // loads .env file into environment variables
+	if err != nil {
+		log.Println("No .env file found or error loading it")
+		panic(err)
+	} else {
+		    log.Println("Successfully loaded .env file")
+	}
+
+// @title Rice Monitor API
+// @version 1.0
+// @description This is a sample server for a rice monitoring application.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http https
+
+
 	// Initialize services
 	ctx := context.Background()
-	
+
 	firestoreService, err := services.NewFirestoreService(ctx)
 	if err != nil {
 		log.Fatal("Failed to initialize Firestore service:", err)
@@ -150,6 +179,9 @@ func setupRouter(
 			}
 		}
 	}
+
+	// Swagger endpoint
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }

@@ -25,6 +25,18 @@ func NewSubmissionHandler(firestoreService *services.FirestoreService) *Submissi
 	}
 }
 
+// @Summary Get all submissions
+// @Description Get a list of all submissions
+// @Tags submissions
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param page query int false "Page number"
+// @Param limit query int false "Number of items per page"
+// @Param status query string false "Filter by submission status"
+// @Param field_id query string false "Filter by field ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /submissions [get]
 func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
@@ -36,7 +48,7 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	fieldID := c.Query("field_id")
 
 	ctx := sh.firestoreService.Context()
-	query := sh.firestoreService.Submissions()
+	query := sh.firestoreService.Submissions().Query
 
 	// Filter by user (non-admin users can only see their submissions)
 	if user.Role != "admin" {
@@ -88,6 +100,17 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	})
 }
 
+// @Summary Create a new submission
+// @Description Create a new submission
+// @Tags submissions
+// @Accept  json
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param submission body models.CreateSubmissionRequest true "Submission object that needs to be added"
+// @Success 201 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /submissions [post]
 func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 	var req models.CreateSubmissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -135,6 +158,16 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 	})
 }
 
+// @Summary Get a submission by ID
+// @Description Get a single submission by its ID
+// @Tags submissions
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "Submission ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Router /submissions/{id} [get]
 func (sh *SubmissionHandler) GetSubmission(c *gin.Context) {
 	submissionID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -168,6 +201,20 @@ func (sh *SubmissionHandler) GetSubmission(c *gin.Context) {
 	})
 }
 
+// @Summary Update a submission
+// @Description Update an existing submission
+// @Tags submissions
+// @Accept  json
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "Submission ID"
+// @Param submission body object true "Submission object that needs to be updated"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /submissions/{id} [put]
 func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 	submissionID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -218,7 +265,7 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 		updates = append(updates, firestore.Update{Path: key, Value: value})
 	}
 
-	_, err = sh.firestoreService.Submissions().Doc(submissionID).Update(ctx, updates...)
+	_, err = sh.firestoreService.Submissions().Doc(submissionID).Update(ctx, updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
@@ -246,6 +293,17 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 	})
 }
 
+// @Summary Delete a submission
+// @Description Delete a submission by its ID
+// @Tags submissions
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "Submission ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /submissions/{id} [delete]
 func (sh *SubmissionHandler) DeleteSubmission(c *gin.Context) {
 	submissionID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -291,12 +349,20 @@ func (sh *SubmissionHandler) DeleteSubmission(c *gin.Context) {
 	})
 }
 
+// @Summary Export submissions to CSV
+// @Description Export submissions to a CSV file
+// @Tags submissions
+// @Produce  text/csv
+// @Security ApiKeyAuth
+// @Success 200 {string} string "CSV content"
+// @Failure 500 {object} models.ErrorResponse
+// @Router /submissions/export [get]
 func (sh *SubmissionHandler) ExportSubmissions(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
 	ctx := sh.firestoreService.Context()
-	query := sh.firestoreService.Submissions()
+	query := sh.firestoreService.Submissions().Query
 
 	// Filter by user (non-admin users can only export their submissions)
 	if user.Role != "admin" {

@@ -23,6 +23,14 @@ func NewAnalyticsHandler(firestoreService *services.FirestoreService) *Analytics
 	}
 }
 
+// @Summary Get Dashboard Data
+// @Description Get dashboard analytics data
+// @Tags analytics
+// @Produce  json
+// @Security ApiKeyAuth
+// @Success 200 {object} models.SuccessResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /analytics/dashboard [get]
 func (ah *AnalyticsHandler) GetDashboardData(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
@@ -30,7 +38,7 @@ func (ah *AnalyticsHandler) GetDashboardData(c *gin.Context) {
 	ctx := ah.firestoreService.Context()
 
 	// Get submissions count
-	submissionsQuery := ah.firestoreService.Submissions()
+	submissionsQuery := ah.firestoreService.Submissions().Query
 	if user.Role != "admin" {
 		submissionsQuery = submissionsQuery.Where("user_id", "==", user.ID)
 	}
@@ -93,6 +101,15 @@ func (ah *AnalyticsHandler) GetDashboardData(c *gin.Context) {
 	})
 }
 
+// @Summary Get Trends Data
+// @Description Get trends analytics data
+// @Tags analytics
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param days query int false "Number of days to look back"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /analytics/trends [get]
 func (ah *AnalyticsHandler) GetTrends(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
@@ -162,6 +179,17 @@ func (ah *AnalyticsHandler) GetTrends(c *gin.Context) {
 	})
 }
 
+// @Summary Get Reports
+// @Description Generate and retrieve reports
+// @Tags analytics
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param type query string false "Report type (summary, detailed, field_analysis)"
+// @Param start_date query string false "Start date for the report (YYYY-MM-DD)"
+// @Param end_date query string false "End date for the report (YYYY-MM-DD)"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /analytics/reports [get]
 func (ah *AnalyticsHandler) GetReports(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
@@ -172,7 +200,7 @@ func (ah *AnalyticsHandler) GetReports(c *gin.Context) {
 	endDate := c.Query("end_date")
 
 	ctx := ah.firestoreService.Context()
-	query := ah.firestoreService.Submissions()
+	query := ah.firestoreService.Submissions().Query
 
 	if user.Role != "admin" {
 		query = query.Where("user_id", "==", user.ID)
@@ -271,9 +299,9 @@ func (ah *AnalyticsHandler) generateFieldAnalysisReport(docs []*firestore.Docume
 		if fieldData[submission.FieldID] == nil {
 			fieldData[submission.FieldID] = map[string]interface{}{
 				"submission_count": 0,
-				"stages":          make(map[string]int),
-				"conditions":      make(map[string]int),
-				"latest_date":     submission.Date,
+				"stages":           make(map[string]int),
+				"conditions":       make(map[string]int),
+				"latest_date":      submission.Date,
 			}
 		}
 

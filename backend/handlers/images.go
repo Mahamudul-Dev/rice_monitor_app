@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,18 @@ func NewImageHandler(storageService *services.StorageService, firestoreService *
 	}
 }
 
+// @Summary Upload an image
+// @Description Upload an image for a submission
+// @Tags images
+// @Accept  multipart/form-data
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param submission_id formData string true "Submission ID"
+// @Param image formData file true "Image file"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /images/upload [post]
 func (ih *ImageHandler) UploadImage(c *gin.Context) {
 	submissionID := c.PostForm("submission_id")
 	if submissionID == "" {
@@ -121,6 +134,12 @@ func (ih *ImageHandler) UploadImage(c *gin.Context) {
 	})
 }
 
+// @Summary Get an image
+// @Description Get an image by its filename
+// @Tags images
+// @Param filename path string true "Image filename"
+// @Success 308 {string} string "Redirects to the image URL"
+// @Router /images/{filename} [get]
 func (ih *ImageHandler) GetImage(c *gin.Context) {
 	filename := c.Param("filename")
 
@@ -131,6 +150,16 @@ func (ih *ImageHandler) GetImage(c *gin.Context) {
 	c.Redirect(http.StatusPermanentRedirect, imageURL)
 }
 
+// @Summary Delete an image
+// @Description Delete an image by its filename
+// @Tags images
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param filename path string true "Image filename"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /images/{filename} [delete]
 func (ih *ImageHandler) DeleteImage(c *gin.Context) {
 	filename := c.Param("filename")
 	currentUser, _ := c.Get("user")

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -24,6 +25,17 @@ func NewAuthHandler(firestoreService *services.FirestoreService) *AuthHandler {
 	}
 }
 
+// @Summary Google Login
+// @Description Authenticate with Google and get JWT tokens
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   token  body  models.GoogleTokenRequest  true  "Google Token"
+// @Success 200 {object} models.AuthResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /auth/google [post]
 func (ah *AuthHandler) GoogleLogin(c *gin.Context) {
 	var req models.GoogleTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -86,6 +98,17 @@ func (ah *AuthHandler) GoogleLogin(c *gin.Context) {
 	})
 }
 
+// @Summary Refresh Token
+// @Description Get a new access token using a refresh token
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   token  body  models.RefreshTokenRequest  true  "Refresh Token"
+// @Success 200 {object} models.AuthResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /auth/refresh [post]
 func (ah *AuthHandler) RefreshToken(c *gin.Context) {
 	var req models.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -134,6 +157,12 @@ func (ah *AuthHandler) RefreshToken(c *gin.Context) {
 	})
 }
 
+// @Summary Logout
+// @Description Logout the current user
+// @Tags auth
+// @Security ApiKeyAuth
+// @Success 200 {object} models.SuccessResponse
+// @Router /auth/logout [post]
 func (ah *AuthHandler) Logout(c *gin.Context) {
 	// In a production system, you might want to blacklist the token
 	c.JSON(http.StatusOK, models.SuccessResponse{
@@ -142,6 +171,14 @@ func (ah *AuthHandler) Logout(c *gin.Context) {
 	})
 }
 
+// @Summary Get Current User
+// @Description Get the currently authenticated user's details
+// @Tags auth
+// @Produce  json
+// @Security ApiKeyAuth
+// @Success 200 {object} models.SuccessResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Router /auth/me [get]
 func (ah *AuthHandler) GetCurrentUser(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -161,7 +198,7 @@ func (ah *AuthHandler) GetCurrentUser(c *gin.Context) {
 // Helper functions
 func (ah *AuthHandler) getOrCreateUser(tokenInfo *oauth2.Tokeninfo) (*models.User, error) {
 	ctx := ah.firestoreService.Context()
-	
+
 	// Check if user exists
 	docs, err := ah.firestoreService.Users().Where("email", "==", tokenInfo.Email).Documents(ctx).GetAll()
 	if err != nil {
@@ -213,6 +250,13 @@ func (ah *AuthHandler) getUserByID(userID string) (*models.User, error) {
 
 func (ah *AuthHandler) updateUserLastLogin(userID string) {
 	ctx := ah.firestoreService.Context()
-	ah.firestoreService.Users().Doc(userID).Update(ctx,
-		firestore.Update{Path: "last_login_at", Value: time.Now()})
+	_, err := ah.firestoreService.Users().Doc(userID).Update(ctx,
+		[]firestore.Update{
+			{Path: "last_login_at", Value: time.Now()},
+		},
+	)
+	if err != nil {
+		// handle error
+		log.Printf("Failed to update last login: %v", err)
+	}
 }

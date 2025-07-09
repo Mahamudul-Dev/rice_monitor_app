@@ -21,6 +21,16 @@ func NewUserHandler(firestoreService *services.FirestoreService) *UserHandler {
 	}
 }
 
+// @Summary Get user by ID
+// @Description Get a single user by their ID
+// @Tags users
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Router /users/{id} [get]
 func (uh *UserHandler) GetUser(c *gin.Context) {
 	userID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -50,6 +60,19 @@ func (uh *UserHandler) GetUser(c *gin.Context) {
 	})
 }
 
+// @Summary Update user
+// @Description Update an existing user
+// @Tags users
+// @Accept  json
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "User ID"
+// @Param user body object true "User object that needs to be updated"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /users/{id} [put]
 func (uh *UserHandler) UpdateUser(c *gin.Context) {
 	userID := c.Param("id")
 	currentUser, _ := c.Get("user")
@@ -85,14 +108,14 @@ func (uh *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	ctx := uh.firestoreService.Context()
-	
+
 	// Update document
 	updates := []firestore.Update{{Path: "updated_at", Value: time.Now()}}
 	for key, value := range updateData {
 		updates = append(updates, firestore.Update{Path: key, Value: value})
 	}
 
-	_, err := uh.firestoreService.Users().Doc(userID).Update(ctx, updates...)
+	_, err := uh.firestoreService.Users().Doc(userID).Update(ctx, updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
@@ -118,6 +141,17 @@ func (uh *UserHandler) UpdateUser(c *gin.Context) {
 	})
 }
 
+// @Summary Delete user
+// @Description Delete a user by their ID
+// @Tags users
+// @Produce  json
+// @Security ApiKeyAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} models.SuccessResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 403 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /users/{id} [delete]
 func (uh *UserHandler) DeleteUser(c *gin.Context) {
 	userID := c.Param("id")
 	currentUser, _ := c.Get("user")

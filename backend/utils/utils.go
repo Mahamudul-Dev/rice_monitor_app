@@ -117,7 +117,7 @@ func ValidateFileType(filename string) bool {
 		".png":  true,
 		".webp": true,
 	}
-	
+
 	// Extract extension (simplified)
 	for ext := range allowedTypes {
 		if len(filename) >= len(ext) && filename[len(filename)-len(ext):] == ext {
