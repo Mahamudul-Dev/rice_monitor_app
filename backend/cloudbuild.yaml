@@ -26,22 +26,23 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
 
-  # Step 4: Deploy to Cloud Run
+  # Step 4: Deploy to Cloud Run using gcloud
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
     dir: 'backend'
     args:
-      - 'run'
-      - 'deploy'
-      - 'rice-monitor-api'
-      - '--image=us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
-      - '--platform=managed'
-      - '--region=us-central1'
-      - '--port=8989'
-      - '--service-account=rice-field-monitor@aicoexist-446217.iam.gserviceaccount.com'
-      - '--project=aicoexist-446217'
-      - '--allow-unauthenticated'
-      - '--timeout=500s'
-      - '--env-vars-file=env.yaml'
+      - '-c'
+      - |
+        gcloud run deploy rice-monitor-api \
+          --image=us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api \
+          --platform=managed \
+          --region=us-central1 \
+          --port=8989 \
+          --service-account=rice-field-monitor@aicoexist-446217.iam.gserviceaccount.com \
+          --project=aicoexist-446217 \
+          --allow-unauthenticated \
+          --timeout=500s \
+          --env-vars-file=env.yaml
 
 images:
   - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
