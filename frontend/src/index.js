@@ -18,7 +18,7 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // Log the error to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('React Error Boundary caught an error:', error, errorInfo);
+      // console.error('React Error Boundary caught an error:', error, errorInfo);
     }
     
     // You can also log the error to an error reporting service here
@@ -91,11 +91,11 @@ if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('SW registered: ', registration);
+        // console.log('SW registered: ', registration);
       })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
+      // .catch((registrationError) => {
+      //   console.log('SW registration failed: ', registrationError);
+      // });
   });
 }
 
@@ -107,7 +107,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Global error handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
+  // console.error('Unhandled promise rejection:', event.reason);
   
   // Prevent the default browser behavior
   event.preventDefault();
@@ -118,7 +118,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Global error handler for uncaught errors
 window.addEventListener('error', (event) => {
-  console.error('Uncaught error:', event.error);
+  // console.error('Uncaught error:', event.error);
   
   // You can report this error to your error tracking service
   // Example: errorTrackingService.captureException(event.error);

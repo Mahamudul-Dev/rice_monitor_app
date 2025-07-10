@@ -1,0 +1,501 @@
+{
+    "info": {
+        "_postman_id": "5e93c090-4f89-47a8-8d07-c10338e93bc1",
+        "name": "Rice Monitor API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": ""
+    },
+    "item": [
+        {
+            "name": "Dashboard",
+            "item": [
+                {
+                    "name": "Get Dashboard Data",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/analytics/dashboard",
+                            "path": [
+                                "api",
+                                "v1",
+                                "analytics",
+                                "dashboard"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Google Login",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/auth/google",
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "google"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6IjhlOGZjOGU1NTZmN2E3NmQwOGQzNTgyOWQ2ZjkwYWUyZTEyY2ZkMGQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0Mjc5OTIwNDY3MzAtOTZwY291aGc4YW51aWIxMnQ0bGRpM243NWV0cmRiY2wuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0Mjc5OTIwNDY3MzAtOTZwY291aGc4YW51aWIxMnQ0bGRpM243NWV0cmRiY2wuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTgxODEyNjUxOTAzODc0MjQ2MTciLCJlbWFpbCI6Im1haGFtdWR1bC5kZXZAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5iZiI6MTc1MjEwMzUzNywibmFtZSI6Ik1EIE1BSEFNVURVTCBIQVNBTiBNT0hJQlVMTEFIIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0t6SGlzbURMd2ZBdnBXakxNeG1UYmlWNXFoLVJuVmU1VWVCUUdqN05xcEVZSG8xVEk9czk2LWMiLCJnaXZlbl9uYW1lIjoiTUQgTUFIQU1VRFVMIEhBU0FOIiwiZmFtaWx5X25hbWUiOiJNT0hJQlVMTEFIIiwiaWF0IjoxNzUyMTAzODM3LCJleHAiOjE3NTIxMDc0MzcsImp0aSI6IjZhMjc3MTBmYWNiODFjNWY5Nzk2NDNlNzBmNmYwMDdiZmIzNjVmYmMifQ.iBFhAhUVtKitygxdKUL9VdEcgYKz-fENWXnNPnCY3UbUEZ3B8Rz99fYlQxWr78f9tqkgfDjwYYEwMgFKJwpfoIqev19qDJ1br3wV19qa7RIc8nqs14dAuw26EFHbT8Mvd7ySk7is7WmtlKeBRdQic5Vs4xn-m1qKQDRNzw_Xo2KiK6pg0Pc-ZZULwD6mBZ68DNj0Tf-a08g0xqnoRiYArLURqnbho7aUFVb6qHMMTQh4uSYocTak2Y_V7P45nxdIu-H9NdBzCn7CT5QXZFcdhwfbS3gIgzrEIuIy6u8Opf0hPszQkT-bq3bqdzNCqPbAv-DOGtOg-ycyLq6b6E-LUg\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Submissions",
+            "item": [
+                {
+                    "name": "Get All Submissions",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/submissions",
+                            "path": [
+                                "api",
+                                "v1",
+                                "submissions"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Submission",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/submissions",
+                            "path": [
+                                "api",
+                                "v1",
+                                "submissions"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\r\n  \"date\": \"2025-07-10T00:42:02+00:00\",\r\n  \"field_id\": \"string\",\r\n  \"growth_stage\": \"string\",\r\n  \"location\": \"string\",\r\n  \"notes\": \"string\",\r\n  \"observer_name\": \"string\",\r\n  \"plant_conditions\": [\r\n    \"string\"\r\n  ],\r\n  \"trait_measurements\": {\r\n    \"culm_length\": 0,\r\n    \"hills_observed\": 0,\r\n    \"panicle_length\": 0,\r\n    \"panicles_per_hill\": 0\r\n  }\r\n}"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Export Submissions CSV",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/submissions/export",
+                            "path": [
+                                "api",
+                                "v1",
+                                "submissions",
+                                "export"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Submission",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/submissions/:id",
+                            "path": [
+                                "api",
+                                "v1",
+                                "submissions",
+                                ":id"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Submission",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/submissions/:id",
+                            "path": [
+                                "api",
+                                "v1",
+                                "submissions",
+                                ":id"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Fields",
+            "item": [
+                {
+                    "name": "Create Fields",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/fields",
+                            "path": [
+                                "api",
+                                "v1",
+                                "fields"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\r\n  \"area\": 0,\r\n  \"coordinates\": {\r\n    \"latitude\": 0,\r\n    \"longitude\": 0\r\n  },\r\n  \"location\": \"test\",\r\n  \"name\": \"test\"\r\n}"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get All Fields",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/fields",
+                            "path": [
+                                "api",
+                                "v1",
+                                "fields"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Images",
+            "item": [
+                {
+                    "name": "Upload Image",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/images/upload",
+                            "path": [
+                                "api",
+                                "v1",
+                                "images",
+                                "upload"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "submission_id",
+                                    "value": "84abf83a-b24f-4244-bc42-0fd9fb21c349",
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "image",
+                                    "src": "c:\\Users\\maham\\Pictures\\Screenshots\\Screenshot 2025-04-10 024228.png",
+                                    "type": "file"
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Image",
+                    "request": {
+                        "method": "GET"
+                    }
+                },
+                {
+                    "name": "Delete Image",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/images/:filename",
+                            "path": [
+                                "api",
+                                "v1",
+                                "images",
+                                ":filename"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Get User",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/users/:id",
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                ":id"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update User",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/users/:id",
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                ":id"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete User",
+                    "request": {
+                        "method": "PUT",
+                        "url": {
+                            "raw": "http://localhost:8989/api/v1/users/:id",
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                ":id"
+                            ],
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "8989"
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDk0OTNmYmQtZGI1MC00ODFmLWI1NDgtNGU0MDAzMDgxYTNlIiwiZW1haWwiOiJtYWhhbXVkdWwuZGV2QGdtYWlsLmNvbSIsInJvbGUiOiJvYnNlcnZlciIsImV4cCI6MTc1MjExMDc1MCwiaWF0IjoxNzUyMTA3MTUwfQ.Ig6d-rZtQsSIS2OFilubsN2iZjWDsmMKPGXVymzHJvc",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "url": {
+                    "raw": "http://localhost:8989/health",
+                    "path": [
+                        "health"
+                    ],
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "8989"
+                }
+            }
+        }
+    ]
+}

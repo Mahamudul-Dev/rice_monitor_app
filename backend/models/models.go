@@ -163,3 +163,9 @@ type ReportData struct {
 	Data        interface{} `json:"data"`
 	GeneratedAt time.Time   `json:"generated_at"`
 }
+
+type GoogleUserInfo struct {
+	Email   string
+	Name    string
+	Picture string
+}

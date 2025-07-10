@@ -75,6 +75,7 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	// Execute query
 	docs, err := query.Documents(ctx).GetAll()
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to retrieve submissions",

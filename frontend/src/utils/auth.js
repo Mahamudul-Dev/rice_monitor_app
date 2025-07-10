@@ -1,33 +1,6 @@
 // Google OAuth Integration utilities
 
-/**
- * Initialize Google Auth API
- * @returns {Promise} Promise that resolves when Google Auth is initialized
- */
-export const initializeGoogleAuth = () => {
-  return new Promise((resolve, reject) => {
-    if (window.gapi) {
-      window.gapi.load('auth2', () => {
-        window.gapi.auth2.init({
-          client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID
-        }).then(resolve).catch(reject);
-      });
-    } else {
-      // Load Google API if not already loaded
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        window.gapi.load('auth2', () => {
-          window.gapi.auth2.init({
-            client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID
-          }).then(resolve).catch(reject);
-        });
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    }
-  });
-};
+
 
 /**
  * Get Google Auth instance
@@ -215,19 +188,77 @@ export const isValidEmail = (email) => {
 };
 
 /**
- * Extract user info from Google user object
- * @param {Object} googleUser 
- * @returns {Object} Extracted user info
+ * Extract user info from Google Credential JWT
+ * @param {Object} credentialResponse 
+ * @returns {Object} Decoded user info
  */
-export const extractGoogleUserInfo = (googleUser) => {
-  const profile = googleUser.getBasicProfile();
-  const authResponse = googleUser.getAuthResponse();
-  
+
+/**
+ * Initialize Google Identity Services and render login button
+ * @param {function} onCredentialResponse - Callback when user logs in
+ */
+export const initializeGoogleAuth = (onCredentialResponse) => {
+  return new Promise((resolve, reject) => {
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setupGoogleLogin(onCredentialResponse);
+        resolve();
+      };
+      script.onerror = () => reject(new Error('Failed to load Google Identity script'));
+      document.head.appendChild(script);
+    } else {
+      setupGoogleLogin(onCredentialResponse);
+      resolve();
+    }
+  });
+};
+
+const setupGoogleLogin = (onCredentialResponse) => {
+  window.google.accounts.id.initialize({
+    client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+    callback: onCredentialResponse,
+  });
+
+  window.google.accounts.id.renderButton(
+    document.querySelector('.g_id_signin'),
+    {
+      theme: 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+    }
+  );
+};
+
+/**
+ * Decode Google JWT token
+ */
+export const extractGoogleUserInfo = (credentialResponse) => {
+  const token = credentialResponse?.credential;
+  if (!token || typeof token !== 'string') {
+    throw new Error('Invalid Google credential');
+  }
+
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(
+    atob(base64).split('').map(c =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join('')
+  );
+
+  const payload = JSON.parse(jsonPayload);
+
   return {
-    email: profile.getEmail(),
-    name: profile.getName(),
-    picture: profile.getImageUrl(),
-    googleId: profile.getId(),
-    accessToken: authResponse.access_token
+    email: payload.email,
+    name: payload.name,
+    picture: payload.picture,
+    googleId: payload.sub,
+    accessToken: token,
   };
 };

@@ -1,43 +1,41 @@
-# Build stage
+# ---------- Build Stage ----------
 FROM golang:1.21-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Install git (needed for go mod download)
+# Install necessary tools (e.g., git for go modules)
 RUN apk add --no-cache git
 
-# Copy go mod files
+# Copy Go modules files and download dependencies
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy the rest of the source code
 COPY . .
 
-# Build the application
+# Build the Go binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
-# Production stage
+# ---------- Production Stage ----------
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS calls
+# Install CA certificates for HTTPS support
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+# Set working directory for runtime
+WORKDIR /app
 
-# Copy the binary from builder stage
+# Copy the compiled binary from builder
 COPY --from=builder /app/main .
 
-# Copy service account file if it exists
-COPY --from=builder /app/service-account.json ./service-account.json 2>/dev/null || true
-
-# Expose port
+# Set port used by the application (optional for Cloud Run)
 EXPOSE 8080
 
-# Set environment variable for service account
-ENV GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
+# Set runtime environment variables — these will be overridden in Cloud Run or CI/CD
+ENV PORT=8080 \
+    GIN_MODE=release \
+    ENVIRONMENT=production
 
-# Run the application
+# Optionally: define runtime command
 CMD ["./main"]

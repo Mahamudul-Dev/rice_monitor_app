@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -11,8 +12,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/api/oauth2/v2"
-	"google.golang.org/api/option"
+	"google.golang.org/api/idtoken"
 )
 
 type AuthHandler struct {
@@ -48,27 +48,32 @@ func (ah *AuthHandler) GoogleLogin(c *gin.Context) {
 
 	// Verify Google token
 	ctx := ah.firestoreService.Context()
-	oauth2Service, err := oauth2.NewService(ctx, option.WithAPIKey(utils.GetEnvOrDefault("GOOGLE_API_KEY", "")))
+
+	// Validate the ID token - replace "YOUR_GOOGLE_CLIENT_ID" with your actual client ID or fetch from config/env
+	payload, err := idtoken.Validate(ctx, req.Token, utils.GetEnvOrDefault("GOOGLE_CLIENT_ID", ""))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "internal_error",
-			Message: "Failed to create OAuth2 service",
+		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
+			Error:   "invalid_token",
+			Message: "Invalid Google ID token",
 		})
 		return
 	}
 
-	tokenInfo, err := oauth2Service.Tokeninfo().AccessToken(req.Token).Do()
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
-			Error:   "invalid_token",
-			Message: "Invalid Google token",
-		})
-		return
+	email, _ := payload.Claims["email"].(string)
+	name, _ := payload.Claims["name"].(string)
+	picture, _ := payload.Claims["picture"].(string)
+
+	// Construct a simplified tokenInfo-like struct or map to pass to your getOrCreateUser
+	tokenInfo := models.GoogleUserInfo{
+		Email:   email,
+		Name:    name,
+		Picture: picture,
 	}
 
 	// Get or create user
 	user, err := ah.getOrCreateUser(tokenInfo)
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to process user",
@@ -196,8 +201,12 @@ func (ah *AuthHandler) GetCurrentUser(c *gin.Context) {
 }
 
 // Helper functions
-func (ah *AuthHandler) getOrCreateUser(tokenInfo *oauth2.Tokeninfo) (*models.User, error) {
+func (ah *AuthHandler) getOrCreateUser(tokenInfo models.GoogleUserInfo) (*models.User, error) {
 	ctx := ah.firestoreService.Context()
+
+	email := tokenInfo.Email
+	name := tokenInfo.Name
+	picture := tokenInfo.Picture
 
 	// Check if user exists
 	docs, err := ah.firestoreService.Users().Where("email", "==", tokenInfo.Email).Documents(ctx).GetAll()
@@ -215,10 +224,10 @@ func (ah *AuthHandler) getOrCreateUser(tokenInfo *oauth2.Tokeninfo) (*models.Use
 	// Create new user
 	user := &models.User{
 		ID:          utils.GenerateID(),
-		Email:       tokenInfo.Email,
-		Name:        tokenInfo.Email, // Will be updated from Google profile if available
-		Picture:     "",              // Will be updated from Google profile if available
-		Role:        "observer",      // Default role
+		Email:       email,
+		Name:        name,       // Will be updated from Google profile if available
+		Picture:     picture,    // Will be updated from Google profile if available
+		Role:        "observer", // Default role
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 		LastLoginAt: time.Now(),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LogOut, AlertCircle, Loader, FileText, Leaf, Download, Eye } from 'lucide-react';
 import apiService from '../services/apiService';
 import Card, { CardBody, CardFooter } from './common/Card';
@@ -25,15 +25,7 @@ const SubmissionsScreen = ({ setActiveTab, onLogout, currentUser, showToast }) =
     limit: 20
   });
 
-  // Load submissions on component mount and when filters change
-  useEffect(() => {
-    loadSubmissions();
-  }, [filters]);
-
-  /**
-   * Load submissions from the API
-   */
-  const loadSubmissions = async () => {
+  const loadSubmissions = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -46,12 +38,17 @@ const SubmissionsScreen = ({ setActiveTab, onLogout, currentUser, showToast }) =
         setError(response.message || 'Failed to load submissions');
       }
     } catch (error) {
-      console.error('Error loading submissions:', error);
+      // console.error('Error loading submissions:', error);
       setError('Failed to load submissions. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  // Load submissions on component mount and when filters change
+  useEffect(() => {
+    loadSubmissions();
+  }, [filters, loadSubmissions]);
 
   /**
    * Get status color classes for badges
@@ -134,7 +131,7 @@ const SubmissionsScreen = ({ setActiveTab, onLogout, currentUser, showToast }) =
         showToast('Submissions exported successfully!', 'success');
       }
     } catch (error) {
-      console.error('Export error:', error);
+      // console.error('Export error:', error);
       if (showToast) {
         showToast('Failed to export submissions', 'error');
       }

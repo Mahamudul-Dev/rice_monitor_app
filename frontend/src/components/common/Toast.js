@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { X, Check, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 /**
@@ -26,6 +26,18 @@ const Toast = ({
   const [isVisible, setIsVisible] = useState(true);
   const [isLeaving, setIsLeaving] = useState(false);
 
+
+  const handleClose = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => {
+      setIsVisible(false);
+      if (onClose) {
+        onClose();
+      }
+    }, 300); // Match animation duration
+  }, [onClose]);
+
+
   // Auto close toast after duration
   useEffect(() => {
     if (duration > 0) {
@@ -35,17 +47,10 @@ const Toast = ({
 
       return () => clearTimeout(timer);
     }
-  }, [duration]);
+  }, [duration, handleClose]);
 
-  const handleClose = () => {
-    setIsLeaving(true);
-    setTimeout(() => {
-      setIsVisible(false);
-      if (onClose) {
-        onClose();
-      }
-    }, 300); // Match animation duration
-  };
+  
+  
 
   if (!isVisible) return null;
 

@@ -19,30 +19,31 @@ import (
 )
 
 func main() {
-	err := godotenv.Load() // loads .env file into environment variables
-	if err != nil {
-		log.Println("No .env file found or error loading it")
-		panic(err)
+	if _, err := os.Stat(".env"); err == nil {
+		// Only load if file exists (for local dev)
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Fatalf("Error loading .env file")
+		}
 	} else {
-		    log.Println("Successfully loaded .env file")
+		log.Println(".env file not found, assuming environment variables are set externally")
 	}
 
-// @title Rice Monitor API
-// @version 1.0
-// @description This is a sample server for a rice monitoring application.
-// @termsOfService http://swagger.io/terms/
+	// @title Rice Monitor API
+	// @version 1.0
+	// @description This is a sample server for a rice monitoring application.
+	// @termsOfService http://swagger.io/terms/
 
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
+	// @contact.name API Support
+	// @contact.url http://www.swagger.io/support
+	// @contact.email support@swagger.io
 
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+	// @license.name Apache 2.0
+	// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:8080
-// @BasePath /api/v1
-// @schemes http https
-
+	// @host localhost:8080
+	// @BasePath /api/v1
+	// @schemes http https
 
 	// Initialize services
 	ctx := context.Background()
@@ -84,7 +85,7 @@ func main() {
 	// Get port from environment or use 8080
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8989"
 	}
 
 	log.Printf("Server starting on port %s", port)
@@ -100,13 +101,35 @@ func setupRouter(
 	analyticsHandler *handlers.AnalyticsHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+
+	// 1. Use logger and recovery middlewares first
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 
 	// CORS middleware
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	config := cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "https://rice-monitor-api-427992046730.us-central1.run.app", "https://rice-monitor.aisenseusa.com"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}
 	router.Use(cors.New(config))
+
+	router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Security-Policy", "connect-src 'self' http://localhost:3000 http://localhost:8989")
+		c.Next()
+	})
+
+	router.OPTIONS("/*path", func(c *gin.Context) {
+		c.AbortWithStatus(http.StatusOK)
+	})
+
+	router.Use(func(c *gin.Context) {
+		log.Println("Incoming request from:", c.Request.Header.Get("Origin"))
+		c.Next()
+	})
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {

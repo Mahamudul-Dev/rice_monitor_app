@@ -10,7 +10,6 @@ import {
   User,
   Plus,
   X,
-  Upload,
   Loader
 } from 'lucide-react';
 import InputField, { TextInput, TextArea, Checkbox } from './common/InputField';
@@ -84,7 +83,7 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
 
   const handleRemoveImage = (index) => {
     // This would need to be implemented to remove images
-    console.log('Remove image at index:', index);
+    // console.log('Remove image at index:', index);
   };
 
   return (
@@ -269,7 +268,7 @@ const MonitoringForm = ({ onLogout, currentUser, showToast, onSubmissionSuccess 
         throw new Error(response.message || 'Failed to upload image');
       }
     } catch (error) {
-      console.error('Image upload error:', error);
+      // console.error('Image upload error:', error);
       if (showToast) {
         showToast('Failed to upload image: ' + error.message, 'error');
       }
@@ -367,7 +366,7 @@ const MonitoringForm = ({ onLogout, currentUser, showToast, onSubmissionSuccess 
         throw new Error(response.message || 'Failed to create submission');
       }
     } catch (error) {
-      console.error('Submission error:', error);
+      // console.error('Submission error:', error);
       if (showToast) {
         showToast('Failed to create submission: ' + error.message, 'error');
       }
