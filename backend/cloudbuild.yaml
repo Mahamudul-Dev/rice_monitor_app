@@ -7,7 +7,7 @@ steps:
       - '-c'
       - |
         if [[ -f ".env" && ! -f "env.yaml" ]]; then
-          echo "Converting .env to env.yaml..."
+          echo "🔁 Converting .env to env.yaml..."
           awk -F= '!/^#/ && NF==2 {gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); print $1 ": " $2}' .env > env.yaml
         fi
 
@@ -26,13 +26,14 @@ steps:
       - 'push'
       - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
 
-  # Step 4: Deploy to Cloud Run using gcloud
+  # ✅ Step 4: Deploy to Cloud Run using gcloud inside bash shell
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     dir: 'backend'
     args:
       - '-c'
       - |
+        echo "🚀 Deploying to Cloud Run..."
         gcloud run deploy rice-monitor-api \
           --image=us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api \
           --platform=managed \
