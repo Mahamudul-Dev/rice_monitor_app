@@ -45,3 +45,6 @@ steps:
 
 images:
   - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
