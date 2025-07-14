@@ -8,7 +8,6 @@ class ApiService {
     const token = localStorage.getItem("access_token");
     return {
       "Content-Type": "application/json",
-
       ...(token && { Authorization: `Bearer ${token}` }),
     };
   }
@@ -24,15 +23,15 @@ class ApiService {
     }
     return response.json();
   }
+
   // Authentication methods
   async googleLogin(token) {
+    console.log("token", token);
     const response = await fetch(`${API_BASE_URL}/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      mode: "cors",
       body: JSON.stringify({ token }),
     });
-
     return this.handleResponse(response);
   }
 
@@ -40,7 +39,6 @@ class ApiService {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      mode: "no-cors",
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     return this.handleResponse(response);
@@ -71,7 +69,6 @@ class ApiService {
   }
 
   async createSubmission(submissionData) {
-    console.log(`${API_BASE_URL}/submissions`);
     const response = await fetch(`${API_BASE_URL}/submissions`, {
       method: "POST",
       headers: this.getAuthHeaders(),

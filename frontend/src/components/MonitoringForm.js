@@ -145,13 +145,13 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
 
       {/* Display uploaded images */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 mt-4">
+        <div className="flex gap-2 mt-4 overflow-x-auto">
           {images.map((image, index) => (
-            <div key={index} className="relative group">
+            <div key={index} className="relative flex-shrink-0 w-32 group">
               <img
                 src={image}
                 alt={`Upload ${index + 1}`}
-                className="object-cover w-full h-24 border rounded-lg"
+                className="object-contain w-full h-24 border rounded-lg"
               />
               <button
                 type="button"
