@@ -1,0 +1,52 @@
+steps:
+  # Step 1: Convert .env to env.yaml if it exists
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    dir: 'backend'
+    args:
+      - '-c'
+      - |
+        if [[ -f ".env" && ! -f "env.yaml" ]]; then
+          echo "🔁 Converting .env to env.yaml..."
+          awk -F= '!/^#/ && NF==2 {gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); print $1 ": " $2}' .env > env.yaml
+        fi
+
+  # Step 2: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'backend'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
+      - '.'
+
+  # Step 3: Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
+
+  # ✅ Step 4: Deploy to Cloud Run using gcloud inside bash shell
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    dir: 'backend'
+    args:
+      - '-c'
+      - |
+        echo "🚀 Deploying to Cloud Run..."
+        gcloud run deploy rice-monitor-api \
+          --image=us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api \
+          --platform=managed \
+          --region=us-central1 \
+          --port=8989 \
+          --service-account=rice-field-monitor@aicoexist-446217.iam.gserviceaccount.com \
+          --project=aicoexist-446217 \
+          --allow-unauthenticated \
+          --timeout=500s \
+          --env-vars-file=env.yaml
+
+images:
+  - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
