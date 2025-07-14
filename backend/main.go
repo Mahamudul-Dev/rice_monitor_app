@@ -109,7 +109,7 @@ func setupRouter(
 
 	// CORS middleware
 	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://rice-monitor-api-427992046730.us-central1.run.app", "https://rice-monitor.aisenseusa.com"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8989", "http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
