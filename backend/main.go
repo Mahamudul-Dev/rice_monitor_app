@@ -11,7 +11,6 @@ import (
 	"rice-monitor-api/middleware"
 	"rice-monitor-api/services"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
@@ -108,14 +107,7 @@ func setupRouter(
 	router.Use(gin.Recovery())
 
 	// CORS middleware
-	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8989", "http://localhost:8080"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}
-	router.Use(cors.New(config))
+	router.Use(middleware.CORSMiddleware())
 
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Content-Security-Policy", "connect-src 'self' http://localhost:3000 http://localhost:8989")
