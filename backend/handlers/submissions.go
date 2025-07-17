@@ -41,30 +41,27 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
+	fmt.Println(user)
+
 	// Parse query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	status := c.Query("status")
-	fieldID := c.Query("field_id")
 
 	ctx := sh.firestoreService.Context()
 	query := sh.firestoreService.Submissions().Query
 
-	// Filter by user (non-admin users can only see their submissions)
+	fmt.Printf("Retrieving submissions (page %d, limit %d, status %s)\n", page, limit, status)
+
+	fmt.Println(query)
+
+	// // Filter by user (non-admin users can only see their submissions)
 	if user.Role != "admin" {
 		query = query.Where("user_id", "==", user.ID)
 	}
 
-	// Apply filters
-	if status != "" {
-		query = query.Where("status", "==", status)
-	}
-	if fieldID != "" {
-		query = query.Where("field_id", "==", fieldID)
-	}
-
-	// Order by creation date (newest first)
-	query = query.OrderBy("created_at", firestore.Desc)
+	// // Order by creation date (newest first)
+	// query = query.OrderBy("created_at", firestore.Desc)
 
 	// Apply pagination
 	if page > 1 {
@@ -83,20 +80,54 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 		return
 	}
 
-	var submissions []models.Submission
+	fmt.Printf("Retrieved %d submissions\n", len(docs))
+
+	var submissionsResponse []models.SubmissionResponse
 	for _, doc := range docs {
 		var submission models.Submission
 		doc.DataTo(&submission)
-		submissions = append(submissions, submission)
+
+		fieldDoc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
+
+		fmt.Println(fieldDoc)
+
+		var field *models.Field
+		if err == nil {
+			field = &models.Field{}
+			fieldDoc.DataTo(field)
+		}
+
+		if err != nil {
+			fmt.Printf("Failed to get field for submission %s: %v\n", submission.ID, err)
+			// Optionally, you can skip this submission or return an error
+			continue
+		}
+
+		submissionsResponse = append(submissionsResponse, models.SubmissionResponse{
+			ID:                submission.ID,
+			UserID:            submission.UserID,
+			FieldID:           submission.FieldID,
+			Field:             *field, // Dereference the field pointer
+			Date:              submission.Date,
+			GrowthStage:       submission.GrowthStage,
+			PlantConditions:   submission.PlantConditions,
+			TraitMeasurements: submission.TraitMeasurements,
+			Notes:             submission.Notes,
+			ObserverName:      submission.ObserverName,
+			Images:            submission.Images,
+			Status:            submission.Status,
+			CreatedAt:         submission.CreatedAt,
+			UpdatedAt:         submission.UpdatedAt,
+		})
 	}
 
 	c.JSON(http.StatusOK, models.SuccessResponse{
 		Success: true,
 		Data: map[string]interface{}{
-			"submissions": submissions,
+			"submissions": submissionsResponse,
 			"page":        page,
 			"limit":       limit,
-			"total":       len(submissions),
+			"total":       len(submissionsResponse),
 		},
 	})
 }
@@ -130,13 +161,12 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 		UserID:            user.ID,
 		FieldID:           req.FieldID,
 		Date:              req.Date,
-		Location:          req.Location,
 		GrowthStage:       req.GrowthStage,
 		PlantConditions:   req.PlantConditions,
 		TraitMeasurements: req.TraitMeasurements,
 		Notes:             req.Notes,
 		ObserverName:      req.ObserverName,
-		Images:            []string{}, // Will be populated when images are uploaded
+		Images:            req.Images, // Will be populated when images are uploaded
 		Status:            "submitted",
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
@@ -196,9 +226,43 @@ func (sh *SubmissionHandler) GetSubmission(c *gin.Context) {
 		return
 	}
 
+	field_doc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
+
+	var field *models.Field
+	if err == nil {
+		field = &models.Field{}
+		field_doc.DataTo(field)
+	}
+
+	if err != nil {
+		fmt.Printf("Failed to get field for submission %s: %v\n", submission.ID, err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to retrieve associated field data",
+		})
+		return
+	}
+
+	submissionResponse := models.SubmissionResponse{
+		ID:                submission.ID,
+		UserID:            submission.UserID,
+		FieldID:           submission.FieldID,
+		Field:             *field,
+		Date:              submission.Date,
+		GrowthStage:       submission.GrowthStage,
+		PlantConditions:   submission.PlantConditions,
+		TraitMeasurements: submission.TraitMeasurements,
+		Notes:             submission.Notes,
+		ObserverName:      submission.ObserverName,
+		Images:            submission.Images,
+		Status:            submission.Status,
+		CreatedAt:         submission.CreatedAt,
+		UpdatedAt:         submission.UpdatedAt,
+	}
+
 	c.JSON(http.StatusOK, models.SuccessResponse{
 		Success: true,
-		Data:    submission,
+		Data:    submissionResponse,
 	})
 }
 
@@ -399,8 +463,8 @@ func (sh *SubmissionHandler) ExportSubmissions(c *gin.Context) {
 	// Write CSV content
 	csvContent := "ID,Date,Location,Growth Stage,Observer,Status\n"
 	for _, s := range submissions {
-		csvContent += fmt.Sprintf("%s,%s,%s,%s,%s,%s\n",
-			s.ID, s.Date.Format("2006-01-02"), s.Location, s.GrowthStage, s.ObserverName, s.Status)
+		csvContent += fmt.Sprintf("%s,%s,%s,%s,%s\n",
+			s.ID, s.Date.Format("2006-01-02"), s.GrowthStage, s.ObserverName, s.Status)
 	}
 
 	c.String(http.StatusOK, csvContent)

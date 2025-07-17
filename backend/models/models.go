@@ -23,6 +23,8 @@ type Field struct {
 	ID          string    `json:"id" firestore:"id"`
 	Name        string    `json:"name" firestore:"name"`
 	Location    string    `json:"location" firestore:"location"`
+	RiceVariety    string    `json:"rice_variety" firestore:"rice_variety"`
+	TentativeDate    string    `json:"tentative_date" firestore:"tentative_date"`
 	Coordinates Location  `json:"coordinates" firestore:"coordinates"`
 	Area        float64   `json:"area" firestore:"area"` // in hectares
 	OwnerID     string    `json:"owner_id" firestore:"owner_id"`
@@ -42,7 +44,6 @@ type Submission struct {
 	UserID            string            `json:"user_id" firestore:"user_id"`
 	FieldID           string            `json:"field_id" firestore:"field_id"`
 	Date              time.Time         `json:"date" firestore:"date"`
-	Location          string            `json:"location" firestore:"location"`
 	GrowthStage       string            `json:"growth_stage" firestore:"growth_stage"`
 	PlantConditions   []string          `json:"plant_conditions" firestore:"plant_conditions"`
 	TraitMeasurements TraitMeasurements `json:"trait_measurements" firestore:"trait_measurements"`
@@ -68,12 +69,12 @@ type TraitMeasurements struct {
 type CreateSubmissionRequest struct {
 	FieldID           string            `json:"field_id" binding:"required"`
 	Date              time.Time         `json:"date" binding:"required"`
-	Location          string            `json:"location" binding:"required"`
 	GrowthStage       string            `json:"growth_stage" binding:"required"`
 	PlantConditions   []string          `json:"plant_conditions"`
 	TraitMeasurements TraitMeasurements `json:"trait_measurements"`
 	Notes             string            `json:"notes"`
 	ObserverName      string            `json:"observer_name" binding:"required"`
+	Images            []string          `json:"images"`
 }
 
 // UpdateSubmissionRequest represents the request payload for updating submissions
@@ -85,11 +86,28 @@ type UpdateSubmissionRequest struct {
 	Notes             *string            `json:"notes,omitempty"`
 	Status            *string            `json:"status,omitempty"`
 }
-
+type SubmissionResponse struct {
+	ID                string            `json:"id"`
+	UserID            string            `json:"user_id"`
+	FieldID           string            `json:"field_id"`
+	Field             Field             `json:"field" `
+	Date              time.Time         `json:"date"`
+	GrowthStage       string            `json:"growth_stage"`
+	PlantConditions   []string          `json:"plant_conditions"`
+	TraitMeasurements TraitMeasurements `json:"trait_measurements"`
+	Notes             string            `json:"notes"`
+	ObserverName      string            `json:"observer_name"`
+	Images            []string          `json:"images"` // URLs to uploaded images
+	Status            string            `json:"status"` // submitted, under_review, approved, rejected
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+}
 // CreateFieldRequest represents the request payload for creating fields
 type CreateFieldRequest struct {
 	Name        string   `json:"name" binding:"required"`
 	Location    string   `json:"location" binding:"required"`
+	RiceVariety    string   `json:"rice_variety" `
+	TentativeDate    string   `json:"tentative_date"`
 	Coordinates Location `json:"coordinates"`
 	Area        float64  `json:"area"`
 }
