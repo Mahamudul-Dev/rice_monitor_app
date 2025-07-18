@@ -52,6 +52,7 @@ func (ah *AuthHandler) GoogleLogin(c *gin.Context) {
 	// Validate the ID token - replace "YOUR_GOOGLE_CLIENT_ID" with your actual client ID or fetch from config/env
 	payload, err := idtoken.Validate(ctx, req.Token, utils.GetEnvOrDefault("GOOGLE_CLIENT_ID", ""))
 	if err != nil {
+		log.Printf("Failed to validate Google ID token: %v", err)
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "invalid_token",
 			Message: "Invalid Google ID token",

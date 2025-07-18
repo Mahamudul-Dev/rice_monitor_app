@@ -43,7 +43,8 @@ steps:
           --project=aicoexist-446217 \
           --allow-unauthenticated \
           --timeout=500s \
-          --env-vars-file=env.yaml
+          --env-vars-file=env.yaml \
+          --set-secrets=/etc/secrets/firebase-admin-service-account.json=firebase-admin-credentials:latest
 
 images:
   - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'

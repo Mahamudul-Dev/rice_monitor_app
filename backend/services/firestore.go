@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go/v4"
+	"google.golang.org/api/option"
 )
 
 type FirestoreService struct {
@@ -18,7 +20,21 @@ func NewFirestoreService(ctx context.Context) (*FirestoreService, error) {
 		projectID = "rice-monitor-dev" // fallback for development
 	}
 
-	client, err := firestore.NewClient(ctx, projectID)
+	var sa option.ClientOption
+	if _, err := os.Stat("/etc/secrets/firebase-admin-service-account.json"); err == nil {
+		sa = option.WithCredentialsFile("/etc/secrets/firebase-admin-service-account.json")
+	} else {
+		sa = option.WithCredentialsFile("firebase-admin-service-account.json")
+	}
+
+	app, err := firebase.NewApp(ctx, &firebase.Config{
+		ProjectID: projectID,
+	}, sa)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := app.Firestore(ctx)
 	if err != nil {
 		return nil, err
 	}
