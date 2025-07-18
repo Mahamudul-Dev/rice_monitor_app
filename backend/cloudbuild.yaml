@@ -1,17 +1,5 @@
 steps:
-  # Step 1: Convert .env to env.yaml if it exists
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    dir: 'backend'
-    args:
-      - '-c'
-      - |
-        if [[ -f ".env" && ! -f "env.yaml" ]]; then
-          echo "🔁 Converting .env to env.yaml..."
-          awk -F= '!/^#/ && NF==2 {gsub(/^[ \t]+|[ \t]+$/, "", $1); gsub(/^[ \t]+|[ \t]+$/, "", $2); print $1 ": " $2}' .env > env.yaml
-        fi
-
-  # Step 2: Build Docker image
+  # Step 1: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'backend'
     args:
@@ -20,13 +8,13 @@ steps:
       - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
       - '.'
 
-  # Step 3: Push Docker image to Artifact Registry
+  # Step 2: Push Docker image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
 
-  # ✅ Step 4: Deploy to Cloud Run using gcloud inside bash shell
+  # ✅ Step 3: Deploy to Cloud Run with secure configuration
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     dir: 'backend'
@@ -43,8 +31,8 @@ steps:
           --project=aicoexist-446217 \
           --allow-unauthenticated \
           --timeout=500s \
-          --env-vars-file=env.yaml \
-          --set-secrets=/etc/secrets/firebase-admin-service-account.json=firebase-admin-credentials:latest
+          --set-env-vars="GOOGLE_CLOUD_PROJECT=rice-465514,STORAGE_BUCKET=rice_storage,GIN_MODE=release,ENVIRONMENT=production" \
+          --update-secrets=GOOGLE_CLIENT_ID=google-client-id:latest,JWT_SECRET=jwt-secret:latest,GOOGLE_API_KEY=google-api-key:latest,/etc/secrets/firebase-admin-service-account.json=firebase-admin-credentials:latest
 
 images:
   - 'us-central1-docker.pkg.dev/aicoexist-446217/aisense-repo/rice_monitor_api'
