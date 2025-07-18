@@ -26,7 +26,8 @@ class ApiService {
 
   // Authentication methods
   async googleLogin(token) {
-    console.log("token", token);
+    console.log("Sending token to backend:", token);
+    console.log("API Base URL:", API_BASE_URL);
     const response = await fetch(`${API_BASE_URL}/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
