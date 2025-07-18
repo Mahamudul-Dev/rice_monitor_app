@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"rice-monitor-api/models"
@@ -52,7 +51,7 @@ func (ah *AuthHandler) GoogleLogin(c *gin.Context) {
 
 	// *** DEBUGGING LINE ***
 	clientID := utils.GetEnvOrDefault("GOOGLE_CLIENT_ID", "EMPTY_OR_NOT_SET")
-	log.Printf("Attempting to validate token with Client ID: '%s' (from os.Getenv: '%s')", clientID, os.Getenv("GOOGLE_CLIENT_ID"))
+	log.Printf("Attempting to validate token with Client ID: '%s'", clientID)
 
 	// Validate the ID token - replace "YOUR_GOOGLE_CLIENT_ID" with your actual client ID or fetch from config/env
 	payload, err := idtoken.Validate(ctx, req.Token, clientID)
