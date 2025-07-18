@@ -10,7 +10,7 @@ import (
 // CORSMiddleware returns the CORS middleware config
 func CORSMiddleware() gin.HandlerFunc {
 	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "https://rice-monitor.web.app", "https://rice-monitor.com", "https://www.rice-monitor.com"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8080", "https://aicoexist-446217.web.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
