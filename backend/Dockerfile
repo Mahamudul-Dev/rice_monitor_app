@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -32,10 +32,8 @@ COPY --from=builder /app/main .
 # Set port used by the application (optional for Cloud Run)
 EXPOSE 8080
 
-# Set runtime environment variables — these will be overridden in Cloud Run or CI/CD
-ENV PORT=8080 \
-    GIN_MODE=release \
-    ENVIRONMENT=production
+# Set runtime environment variables 
+ENV PORT=8080     GIN_MODE=release     ENVIRONMENT=production
 
 # Optionally: define runtime command
 CMD ["./main"]
