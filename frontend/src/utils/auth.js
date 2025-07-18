@@ -218,13 +218,8 @@ export const initializeGoogleAuth = (onCredentialResponse) => {
 };
 
 const setupGoogleLogin = (onCredentialResponse) => {
-  const client_id = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-  if (!client_id) {
-    console.error("Google Client ID is not defined. Please set REACT_APP_GOOGLE_CLIENT_ID environment variable.");
-    return;
-  }
   window.google.accounts.id.initialize({
-    client_id: client_id,
+    client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
     callback: onCredentialResponse,
   });
 

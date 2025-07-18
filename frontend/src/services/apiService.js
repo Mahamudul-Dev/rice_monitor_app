@@ -5,7 +5,8 @@ const API_BASE_URL =
 class ApiService {
   // Helper method to get auth headers
   getAuthHeaders() {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");    
+    console.log(token);
     return {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -26,8 +27,7 @@ class ApiService {
 
   // Authentication methods
   async googleLogin(token) {
-    console.log("Sending token to backend:", token);
-    console.log("API Base URL:", API_BASE_URL);
+    console.log("token", token);
     const response = await fetch(`${API_BASE_URL}/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -209,6 +209,7 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+
   // User methods
   async getUser(id) {
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {
@@ -225,6 +226,7 @@ class ApiService {
     });
     return this.handleResponse(response);
   }
+
 
   async deleteUser(id) {
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {

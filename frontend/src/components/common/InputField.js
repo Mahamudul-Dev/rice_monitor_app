@@ -79,7 +79,7 @@ export const TextInput = ({
     border rounded-lg 
     transition-colors duration-200
     focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
-    disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
+    disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed bg-gray-100
   `;
 
   const borderClasses = error 
@@ -119,7 +119,7 @@ export const TextArea = ({
     transition-colors duration-200
     focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
     disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
-    resize-none
+    resize-none bg-gray-100
   `;
 
   const borderClasses = error 
@@ -156,11 +156,11 @@ export const Select = ({
   const baseClasses = `
     w-full px-3 py-2 
     border rounded-lg 
-    transition-colors duration-200
+    transition-colors duration-200 
     focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
     disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed
     appearance-none
-    bg-white
+    bg-white bg-gray-200
   `;
 
   const borderClasses = error 

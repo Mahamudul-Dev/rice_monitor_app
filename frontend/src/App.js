@@ -232,7 +232,7 @@ function App() {
 
   // Main app content for authenticated users
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen  bg-gray-50">
       {/* Main Content */}
       {activeTab === "form" && (
         <MonitoringForm
