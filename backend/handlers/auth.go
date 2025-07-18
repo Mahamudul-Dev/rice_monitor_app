@@ -49,8 +49,12 @@ func (ah *AuthHandler) GoogleLogin(c *gin.Context) {
 	// Verify Google token
 	ctx := ah.firestoreService.Context()
 
+	// *** DEBUGGING LINE ***
+	clientID := utils.GetEnvOrDefault("GOOGLE_CLIENT_ID", "EMPTY_OR_NOT_SET")
+	log.Printf("Attempting to validate token with Client ID: '%s'", clientID)
+
 	// Validate the ID token - replace "YOUR_GOOGLE_CLIENT_ID" with your actual client ID or fetch from config/env
-	payload, err := idtoken.Validate(ctx, req.Token, utils.GetEnvOrDefault("GOOGLE_CLIENT_ID", ""))
+	payload, err := idtoken.Validate(ctx, req.Token, clientID)
 	if err != nil {
 		log.Printf("Failed to validate Google ID token: %v", err)
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
