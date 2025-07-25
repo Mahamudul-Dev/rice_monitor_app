@@ -47,7 +47,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(firestoreService)
 	userHandler := handlers.NewUserHandler(firestoreService)
 	submissionHandler := handlers.NewSubmissionHandler(firestoreService)
-	imageHandler := handlers.NewImageHandler(storageService, firestoreService)
+	mediaHandler := handlers.NewMediaHandler(storageService, firestoreService)
 	fieldHandler := handlers.NewFieldHandler(firestoreService)
 	analyticsHandler := handlers.NewAnalyticsHandler(firestoreService)
 
@@ -59,7 +59,7 @@ func main() {
 		authHandler,
 		userHandler,
 		submissionHandler,
-		imageHandler,
+		mediaHandler,
 		fieldHandler,
 		analyticsHandler,
 		authMiddleware,
@@ -79,7 +79,7 @@ func setupRouter(
 	authHandler *handlers.AuthHandler,
 	userHandler *handlers.UserHandler,
 	submissionHandler *handlers.SubmissionHandler,
-	imageHandler *handlers.ImageHandler,
+	mediaHandler *handlers.MediaHandler,
 	fieldHandler *handlers.FieldHandler,
 	analyticsHandler *handlers.AnalyticsHandler,
 	authMiddleware *middleware.AuthMiddleware,
@@ -88,7 +88,7 @@ func setupRouter(
 
 	// Use CORS middleware
 	router.Use(middleware.CORSMiddleware())
-	
+
 	// Handle preflight requests explicitly
 	router.OPTIONS("/*path", func(c *gin.Context) {
 		log.Printf("OPTIONS request for path: %s", c.Param("path"))
@@ -144,11 +144,11 @@ func setupRouter(
 			}
 
 			// Image upload
-			images := protected.Group("/images")
+			medias := protected.Group("/media")
 			{
-				images.POST("/upload", imageHandler.UploadImage)
-				images.GET("/:filename", imageHandler.GetImage)
-				images.DELETE("/:filename", imageHandler.DeleteImage)
+				medias.POST("/upload", mediaHandler.UploadMedia)
+				medias.GET("/:filename", mediaHandler.GetMedia)
+				medias.DELETE("/:filename", mediaHandler.DeleteMedia)
 			}
 
 			// Analytics

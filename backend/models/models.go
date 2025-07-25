@@ -20,16 +20,16 @@ type User struct {
 
 // Field represents a rice field
 type Field struct {
-	ID          string    `json:"id" firestore:"id"`
-	Name        string    `json:"name" firestore:"name"`
-	Location    string    `json:"location" firestore:"location"`
-	RiceVariety    string    `json:"rice_variety" firestore:"rice_variety"`
-	TentativeDate    string    `json:"tentative_date" firestore:"tentative_date"`
-	Coordinates Location  `json:"coordinates" firestore:"coordinates"`
-	Area        float64   `json:"area" firestore:"area"` // in hectares
-	OwnerID     string    `json:"owner_id" firestore:"owner_id"`
-	CreatedAt   time.Time `json:"created_at" firestore:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" firestore:"updated_at"`
+	ID            string    `json:"id" firestore:"id"`
+	Name          string    `json:"name" firestore:"name"`
+	Location      string    `json:"location" firestore:"location"`
+	RiceVariety   string    `json:"rice_variety" firestore:"rice_variety"`
+	TentativeDate string    `json:"tentative_date" firestore:"tentative_date"`
+	Coordinates   Location  `json:"coordinates" firestore:"coordinates"`
+	Area          float64   `json:"area" firestore:"area"` // in hectares
+	OwnerID       string    `json:"owner_id" firestore:"owner_id"`
+	CreatedAt     time.Time `json:"created_at" firestore:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" firestore:"updated_at"`
 }
 
 // Location represents GPS coordinates
@@ -39,18 +39,44 @@ type Location struct {
 }
 
 // Submission represents a monitoring submission
+type PlantConditions struct {
+	Healthy                   bool            `json:"Healthy" firestore:"Healthy"`
+	Unhealthy                 bool            `json:"Unhealthy" firestore:"Unhealthy"`
+	SignsOfPestInfestation    bool            `json:"Signs of pest infestation" firestore:"Signs of pest infestation"`
+	PestDetails               map[string]bool `json:"pestDetails" firestore:"pestDetails"`
+	OtherPest                 string          `json:"otherPest" firestore:"otherPest"`
+	SignsOfNutrientDeficiency bool            `json:"Signs of nutrient deficiency" firestore:"Signs of nutrient deficiency"`
+	NutrientDeficiencyDetails map[string]bool `json:"nutrientDeficiencyDetails" firestore:"nutrientDeficiencyDetails"`
+	OtherNutrient             string          `json:"otherNutrient" firestore:"otherNutrient"`
+	WaterStress               bool            `json:"Water stress (drought or flood)" firestore:"Water stress (drought or flood)"`
+	WaterStressLevel          string          `json:"waterStressLevel" firestore:"waterStressLevel"`
+	Lodging                   bool            `json:"Lodging (bent/broken stems)" firestore:"Lodging (bent/broken stems)"`
+	LodgingLevel              string          `json:"lodgingLevel" firestore:"lodgingLevel"`
+	WeedInfestation           bool            `json:"Weed infestation" firestore:"Weed infestation"`
+	WeedInfestationLevel      string          `json:"weedInfestationLevel" firestore:"weedInfestationLevel"`
+	DiseaseSymptoms           bool            `json:"Disease symptoms" firestore:"Disease symptoms"`
+	DiseaseDetails            map[string]bool `json:"diseaseDetails" firestore:"diseaseDetails"`
+	OtherDisease              string          `json:"otherDisease" firestore:"otherDisease"`
+	Other                     bool            `json:"Other" firestore:"Other"`
+	OtherConditionText        string          `json:"otherConditionText" firestore:"otherConditionText"`
+}
+
+// Submission represents a monitoring submission
 type Submission struct {
 	ID                string            `json:"id" firestore:"id"`
 	UserID            string            `json:"user_id" firestore:"user_id"`
 	FieldID           string            `json:"field_id" firestore:"field_id"`
+	Coordinates       Location          `json:"coordinates" firestore:"coordinates"`
 	Date              time.Time         `json:"date" firestore:"date"`
 	GrowthStage       string            `json:"growth_stage" firestore:"growth_stage"`
-	PlantConditions   []string          `json:"plant_conditions" firestore:"plant_conditions"`
+	PlantConditions   PlantConditions   `json:"plant_conditions" firestore:"plant_conditions"`
 	TraitMeasurements TraitMeasurements `json:"trait_measurements" firestore:"trait_measurements"`
 	Notes             string            `json:"notes" firestore:"notes"`
 	ObserverName      string            `json:"observer_name" firestore:"observer_name"`
-	Images            []string          `json:"images" firestore:"images"` // URLs to uploaded images
-	Status            string            `json:"status" firestore:"status"` // submitted, under_review, approved, rejected
+	Images            []string          `json:"images" firestore:"images"`
+	Videos            []string          `json:"videos" firestore:"videos"`
+	Audio             []string          `json:"audio" firestore:"audio"`
+	Status            string            `json:"status" firestore:"status"`
 	CreatedAt         time.Time         `json:"created_at" firestore:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at" firestore:"updated_at"`
 }
@@ -70,11 +96,14 @@ type CreateSubmissionRequest struct {
 	FieldID           string            `json:"field_id" binding:"required"`
 	Date              time.Time         `json:"date" binding:"required"`
 	GrowthStage       string            `json:"growth_stage" binding:"required"`
-	PlantConditions   []string          `json:"plant_conditions"`
+	PlantConditions   PlantConditions   `json:"plant_conditions"`
 	TraitMeasurements TraitMeasurements `json:"trait_measurements"`
+	Coordinates       Location          `json:"coordinates"`
 	Notes             string            `json:"notes"`
 	ObserverName      string            `json:"observer_name" binding:"required"`
 	Images            []string          `json:"images"`
+	Videos            []string          `json:"videos"`
+	Audio             []string          `json:"audio"`
 }
 
 // UpdateSubmissionRequest represents the request payload for updating submissions
@@ -93,23 +122,27 @@ type SubmissionResponse struct {
 	Field             Field             `json:"field" `
 	Date              time.Time         `json:"date"`
 	GrowthStage       string            `json:"growth_stage"`
-	PlantConditions   []string          `json:"plant_conditions"`
+	PlantConditions   PlantConditions   `json:"plant_conditions"`
 	TraitMeasurements TraitMeasurements `json:"trait_measurements"`
 	Notes             string            `json:"notes"`
 	ObserverName      string            `json:"observer_name"`
-	Images            []string          `json:"images"` // URLs to uploaded images
-	Status            string            `json:"status"` // submitted, under_review, approved, rejected
+	Images            []string          `json:"images"`
+	Videos            []string          `json:"videos"`
+	Audio             []string          `json:"audio"`
+	Status            string            `json:"status"`
+	Coordinates       Location          `json:"coordinates"`
 	CreatedAt         time.Time         `json:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at"`
 }
+
 // CreateFieldRequest represents the request payload for creating fields
 type CreateFieldRequest struct {
-	Name        string   `json:"name" binding:"required"`
-	Location    string   `json:"location" binding:"required"`
-	RiceVariety    string   `json:"rice_variety" `
-	TentativeDate    string   `json:"tentative_date"`
-	Coordinates Location `json:"coordinates"`
-	Area        float64  `json:"area"`
+	Name          string   `json:"name" binding:"required"`
+	Location      string   `json:"location" binding:"required"`
+	RiceVariety   string   `json:"rice_variety" `
+	TentativeDate string   `json:"tentative_date"`
+	Coordinates   Location `json:"coordinates"`
+	Area          float64  `json:"area"`
 }
 
 // GoogleTokenRequest represents Google OAuth token request

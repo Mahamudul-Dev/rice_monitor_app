@@ -115,7 +115,10 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 			Notes:             submission.Notes,
 			ObserverName:      submission.ObserverName,
 			Images:            submission.Images,
+			Videos:            submission.Videos,
+			Audio:             submission.Audio,
 			Status:            submission.Status,
+			Coordinates:       submission.Coordinates,
 			CreatedAt:         submission.CreatedAt,
 			UpdatedAt:         submission.UpdatedAt,
 		})
@@ -153,6 +156,8 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("Received PlantConditions: %+v\n", req.PlantConditions)
+
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
@@ -164,13 +169,18 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 		GrowthStage:       req.GrowthStage,
 		PlantConditions:   req.PlantConditions,
 		TraitMeasurements: req.TraitMeasurements,
+		Coordinates:       req.Coordinates,
 		Notes:             req.Notes,
 		ObserverName:      req.ObserverName,
-		Images:            req.Images, // Will be populated when images are uploaded
+		Images:            req.Images,
+		Videos:            req.Videos,
+		Audio:             req.Audio,
 		Status:            "submitted",
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
 	}
+
+	fmt.Printf("Creating submission: %+v\n", submission)
 
 	ctx := sh.firestoreService.Context()
 	_, err := sh.firestoreService.Submissions().Doc(submission.ID).Set(ctx, submission)
@@ -255,7 +265,10 @@ func (sh *SubmissionHandler) GetSubmission(c *gin.Context) {
 		Notes:             submission.Notes,
 		ObserverName:      submission.ObserverName,
 		Images:            submission.Images,
+		Videos:            submission.Videos,
+		Audio:             submission.Audio,
 		Status:            submission.Status,
+		Coordinates:       submission.Coordinates,
 		CreatedAt:         submission.CreatedAt,
 		UpdatedAt:         submission.UpdatedAt,
 	}
@@ -322,8 +335,6 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 	delete(updateData, "id")
 	delete(updateData, "user_id")
 	delete(updateData, "created_at")
-	updateData["updated_at"] = time.Now()
-
 	// Update document
 	updates := []firestore.Update{{Path: "updated_at", Value: time.Now()}}
 	for key, value := range updateData {
@@ -332,6 +343,7 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 
 	_, err = sh.firestoreService.Submissions().Doc(submissionID).Update(ctx, updates)
 	if err != nil {
+		fmt.Printf("Failed to update submission %s: %v\n", submissionID, err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to update submission",

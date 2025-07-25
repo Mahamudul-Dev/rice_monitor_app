@@ -260,8 +260,68 @@ func (ah *AnalyticsHandler) generateSummaryReport(docs []*firestore.DocumentSnap
 		statusCounts[submission.Status]++
 		stageCounts[submission.GrowthStage]++
 
-		for _, condition := range submission.PlantConditions {
-			conditionCounts[condition]++
+		if submission.PlantConditions.Healthy {
+			conditionCounts["Healthy"]++
+		}
+		if submission.PlantConditions.Unhealthy {
+			conditionCounts["Unhealthy"]++
+		}
+		if submission.PlantConditions.SignsOfPestInfestation {
+			conditionCounts["Signs of pest infestation"]++
+			for pest, selected := range submission.PlantConditions.PestDetails {
+				if selected {
+					conditionCounts["Pest: "+pest]++
+				}
+			}
+			if submission.PlantConditions.OtherPest != "" {
+				conditionCounts["Pest: Other ("+submission.PlantConditions.OtherPest+")"]++
+			}
+		}
+		if submission.PlantConditions.SignsOfNutrientDeficiency {
+			conditionCounts["Signs of nutrient deficiency"]++
+			for nutrient, selected := range submission.PlantConditions.NutrientDeficiencyDetails {
+				if selected {
+					conditionCounts["Nutrient: "+nutrient]++
+				}
+			}
+			if submission.PlantConditions.OtherNutrient != "" {
+				conditionCounts["Nutrient: Other ("+submission.PlantConditions.OtherNutrient+")"]++
+			}
+		}
+		if submission.PlantConditions.WaterStress {
+			conditionCounts["Water stress (drought or flood)"]++
+			if submission.PlantConditions.WaterStressLevel != "" {
+				conditionCounts["Water Stress Level: "+submission.PlantConditions.WaterStressLevel]++
+			}
+		}
+		if submission.PlantConditions.Lodging {
+			conditionCounts["Lodging (bent/broken stems)"]++
+			if submission.PlantConditions.LodgingLevel != "" {
+				conditionCounts["Lodging Level: "+submission.PlantConditions.LodgingLevel]++
+			}
+		}
+		if submission.PlantConditions.WeedInfestation {
+			conditionCounts["Weed infestation"]++
+			if submission.PlantConditions.WeedInfestationLevel != "" {
+				conditionCounts["Weed Infestation Level: "+submission.PlantConditions.WeedInfestationLevel]++
+			}
+		}
+		if submission.PlantConditions.DiseaseSymptoms {
+			conditionCounts["Disease symptoms"]++
+			for disease, selected := range submission.PlantConditions.DiseaseDetails {
+				if selected {
+					conditionCounts["Disease: "+disease]++
+				}
+			}
+			if submission.PlantConditions.OtherDisease != "" {
+				conditionCounts["Disease: Other ("+submission.PlantConditions.OtherDisease+")"]++
+			}
+		}
+		if submission.PlantConditions.Other {
+			conditionCounts["Other"]++
+			if submission.PlantConditions.OtherConditionText != "" {
+				conditionCounts["Other Condition: "+submission.PlantConditions.OtherConditionText]++
+			}
 		}
 	}
 
@@ -312,8 +372,68 @@ func (ah *AnalyticsHandler) generateFieldAnalysisReport(docs []*firestore.Docume
 		stages[submission.GrowthStage]++
 
 		conditions := data["conditions"].(map[string]int)
-		for _, condition := range submission.PlantConditions {
-			conditions[condition]++
+		if submission.PlantConditions.Healthy {
+			conditions["Healthy"]++
+		}
+		if submission.PlantConditions.Unhealthy {
+			conditions["Unhealthy"]++
+		}
+		if submission.PlantConditions.SignsOfPestInfestation {
+			conditions["Signs of pest infestation"]++
+			for pest, selected := range submission.PlantConditions.PestDetails {
+				if selected {
+					conditions["Pest: "+pest]++
+				}
+			}
+			if submission.PlantConditions.OtherPest != "" {
+				conditions["Pest: Other ("+submission.PlantConditions.OtherPest+")"]++
+			}
+		}
+		if submission.PlantConditions.SignsOfNutrientDeficiency {
+			conditions["Signs of nutrient deficiency"]++
+			for nutrient, selected := range submission.PlantConditions.NutrientDeficiencyDetails {
+				if selected {
+					conditions["Nutrient: "+nutrient]++
+				}
+			}
+			if submission.PlantConditions.OtherNutrient != "" {
+				conditions["Nutrient: Other ("+submission.PlantConditions.OtherNutrient+")"]++
+			}
+		}
+		if submission.PlantConditions.WaterStress {
+			conditions["Water stress (drought or flood)"]++
+			if submission.PlantConditions.WaterStressLevel != "" {
+				conditions["Water Stress Level: "+submission.PlantConditions.WaterStressLevel]++
+			}
+		}
+		if submission.PlantConditions.Lodging {
+			conditions["Lodging (bent/broken stems)"]++
+			if submission.PlantConditions.LodgingLevel != "" {
+				conditions["Lodging Level: "+submission.PlantConditions.LodgingLevel]++
+			}
+		}
+		if submission.PlantConditions.WeedInfestation {
+			conditions["Weed infestation"]++
+			if submission.PlantConditions.WeedInfestationLevel != "" {
+				conditions["Weed Infestation Level: "+submission.PlantConditions.WeedInfestationLevel]++
+			}
+		}
+		if submission.PlantConditions.DiseaseSymptoms {
+			conditions["Disease symptoms"]++
+			for disease, selected := range submission.PlantConditions.DiseaseDetails {
+				if selected {
+					conditions["Disease: "+disease]++
+				}
+			}
+			if submission.PlantConditions.OtherDisease != "" {
+				conditions["Disease: Other ("+submission.PlantConditions.OtherDisease+")"]++
+			}
+		}
+		if submission.PlantConditions.Other {
+			conditions["Other"]++
+			if submission.PlantConditions.OtherConditionText != "" {
+				conditions["Other Condition: "+submission.PlantConditions.OtherConditionText]++
+			}
 		}
 
 		if submission.Date.After(data["latest_date"].(time.Time)) {

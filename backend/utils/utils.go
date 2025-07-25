@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"path/filepath"
+	"strings"
 
 	"rice-monitor-api/models"
 
@@ -109,20 +111,54 @@ func Contains(slice []string, item string) bool {
 	return false
 }
 
-// ValidateFileType checks if file extension is allowed
-func ValidateFileType(filename string) bool {
-	allowedTypes := map[string]bool{
+// ValidateMediaType checks if file extension is allowed for a given media type
+func ValidateMediaType(filename, fileType string) bool {
+	switch fileType {
+	case "image":
+		return IsImageFile(filename)
+	case "video":
+		return IsVideoFile(filename)
+	case "audio":
+		return IsAudioFile(filename)
+	default:
+		return false
+	}
+}
+
+// IsImageFile checks if the file has an allowed image extension
+func IsImageFile(filename string) bool {
+	allowedExtensions := map[string]bool{
 		".jpg":  true,
 		".jpeg": true,
 		".png":  true,
 		".webp": true,
 	}
+	return checkExtension(filename, allowedExtensions)
+}
 
-	// Extract extension (simplified)
-	for ext := range allowedTypes {
-		if len(filename) >= len(ext) && filename[len(filename)-len(ext):] == ext {
-			return true
-		}
+// IsVideoFile checks if the file has an allowed video extension
+func IsVideoFile(filename string) bool {
+	allowedExtensions := map[string]bool{
+		".mp4":  true,
+		".mov": true,
+		".webm": true,
 	}
-	return false
+	return checkExtension(filename, allowedExtensions)
+}
+
+// IsAudioFile checks if the file has an allowed audio extension
+func IsAudioFile(filename string) bool {
+	allowedExtensions := map[string]bool{
+		".mp3":  true,
+		".wav": true,
+		".ogg": true,
+		".webm": true,
+	}
+	return checkExtension(filename, allowedExtensions)
+}
+
+// checkExtension is a helper to validate file extensions
+func checkExtension(filename string, allowedExtensions map[string]bool) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	return allowedExtensions[ext]
 }

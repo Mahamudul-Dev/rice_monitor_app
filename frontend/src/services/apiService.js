@@ -115,14 +115,15 @@ class ApiService {
     return response.blob(); // Return blob for CSV download
   }
 
-  // Image methods
-  async uploadImage(file, submissionId) {
+  // Media methods
+  async uploadMedia(file, fileType, submissionId) {
     const token = localStorage.getItem("access_token");
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("file", file);
+    formData.append("file_type", fileType);
     formData.append("submission_id", submissionId);
 
-    const response = await fetch(`${API_BASE_URL}/images/upload`, {
+    const response = await fetch(`${API_BASE_URL}/media/upload`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,

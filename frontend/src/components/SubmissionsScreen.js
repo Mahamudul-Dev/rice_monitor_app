@@ -7,6 +7,8 @@ import {
   Leaf,
   Download,
   Eye,
+  PlayCircle, // Added for video icon
+  Music,      // Added for audio icon
 } from "lucide-react";
 import apiService from "../services/apiService";
 import Card, { CardBody, CardFooter } from "./common/Card";
@@ -32,6 +34,8 @@ const SubmissionsScreen = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
   const [filters, setFilters] = useState({
     status: "",
     page: 1,
@@ -121,8 +125,22 @@ const SubmissionsScreen = ({
    * Handle view submission details
    * @param {Object} submission - Submission to view
    */
-  const handleViewSubmission = (submission) => {
-    setSelectedSubmission(submission);
+  const handleViewSubmission = async (submissionId) => {
+    setSelectedSubmission(null); // Clear previous selection
+    setDetailLoading(true);
+    setDetailError("");
+    try {
+      const response = await apiService.getSubmission(submissionId);
+      if (response.success) {
+        setSelectedSubmission(response.data);
+      } else {
+        setDetailError(response.message || "Failed to load submission details.");
+      }
+    } catch (error) {
+      setDetailError("Failed to load submission details. Please try again.");
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   /**
@@ -335,7 +353,7 @@ const SubmissionsScreen = ({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleViewSubmission(submission)}
+                    onClick={() => handleViewSubmission(submission.id)}
                     leftIcon={<Eye />}
                   >
                     View Details
@@ -406,44 +424,211 @@ const SubmissionsScreen = ({
               </div>
 
               {/* Add detailed submission view here */}
-              <div className="space-y-4">
-                <div>
-                  <strong>Location:</strong> {selectedSubmission.field.name} ,{" "}
-                  {selectedSubmission.field.location}
+              {detailLoading ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader className="w-8 h-8 animate-spin text-green-600" />
+                  <p className="ml-2 text-gray-600">Loading details...</p>
                 </div>
-                <div>
-                  <strong>Date:</strong> {formatDate(selectedSubmission.date)}
-                </div>
-                <div>
-                  <strong>Growth Stage:</strong>{" "}
-                  {selectedSubmission.growth_stage}
-                </div>
-                {selectedSubmission.notes && (
+              ) : detailError ? (
+                <div className="text-red-500 text-center py-4">{detailError}</div>
+              ) : (
+                <div className="space-y-4">
                   <div>
-                    <strong>Notes:</strong>
-                    <p className="mt-1 text-gray-700">
-                      {selectedSubmission.notes}
-                    </p>
+                    <strong>Location:</strong> {selectedSubmission.field.name} ,{" "}
+                    {selectedSubmission.field.location}
                   </div>
-                )}
-                {selectedSubmission.images &&
-                  selectedSubmission.images.length > 0 && (
+                  <div>
+                    <strong>Date:</strong> {formatDate(selectedSubmission.date)}
+                  </div>
+                  <div>
+                    <strong>Growth Stage:</strong>{" "}
+                    {selectedSubmission.growth_stage}
+                  </div>
+
+                  {/* Plant Conditions Details */}
+                  {selectedSubmission.plant_conditions && (
                     <div>
-                      <strong>Images:</strong>
-                      <div className="flex gap-2 mt-4 overflow-x-auto">
-                        {selectedSubmission.images.map((image, index) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`Submission Image ${index + 1}`}
-                            className="w-auto h-20 rounded-lg cursor-pointer"
-                            onClick={() => window.open(image, "_blank")}
-                          />
-                        ))}
-                      </div>
+                      <strong>Plant Conditions:</strong>
+                      <ul className="list-disc list-inside ml-4">
+                        {selectedSubmission.plant_conditions.Healthy && <li>Healthy</li>}
+                        {selectedSubmission.plant_conditions.Unhealthy && <li>Unhealthy</li>}
+
+                        {selectedSubmission.plant_conditions["Signs of pest infestation"] && (
+                          <li>
+                            Signs of pest infestation:
+                            <ul className="list-circle list-inside ml-4">
+                              {Object.entries(selectedSubmission.plant_conditions.pestDetails || {}).map(([pest, selected]) => (
+                                selected && <li key={pest}>{pest}</li>
+                              ))}
+                              {selectedSubmission.plant_conditions.otherPest && (
+                                <li>Other: {selectedSubmission.plant_conditions.otherPest}</li>
+                              )}
+                            </ul>
+                          </li>
+                        )}
+
+                        {selectedSubmission.plant_conditions["Signs of nutrient deficiency"] && (
+                          <li>
+                            Signs of nutrient deficiency:
+                            <ul className="list-circle list-inside ml-4">
+                              {Object.entries(selectedSubmission.plant_conditions.nutrientDeficiencyDetails || {}).map(([nutrient, selected]) => (
+                                selected && <li key={nutrient}>{nutrient}</li>
+                              ))}
+                              {selectedSubmission.plant_conditions.otherNutrient && (
+                                <li>Other: {selectedSubmission.plant_conditions.otherNutrient}</li>
+                              )}
+                            </ul>
+                          </li>
+                        )}
+
+                        {selectedSubmission.plant_conditions["Water stress (drought or flood)"] && (
+                          <li>
+                            Water stress (drought or flood):
+                            {selectedSubmission.plant_conditions.waterStressLevel && (
+                              <span className="ml-2 font-medium">{selectedSubmission.plant_conditions.waterStressLevel}</span>
+                            )}
+                          </li>
+                        )}
+
+                        {selectedSubmission.plant_conditions["Lodging (bent/broken stems)"] && (
+                          <li>
+                            Lodging (bent/broken stems):
+                            {selectedSubmission.plant_conditions.lodgingLevel && (
+                              <span className="ml-2 font-medium">{selectedSubmission.plant_conditions.lodgingLevel}</span>
+                            )}
+                          </li>
+                        )}
+
+                        {selectedSubmission.plant_conditions["Weed infestation"] && (
+                          <li>
+                            Weed infestation:
+                            {selectedSubmission.plant_conditions.weedInfestationLevel && (
+                              <span className="ml-2 font-medium">{selectedSubmission.plant_conditions.weedInfestationLevel}</span>
+                            )}
+                          </li>
+                        )}
+
+                        {selectedSubmission.plant_conditions["Disease symptoms"] && (
+                          <li>
+                            Disease symptoms:
+                            <ul className="list-circle list-inside ml-4">
+                              {Object.entries(selectedSubmission.plant_conditions.diseaseDetails || {}).map(([disease, selected]) => (
+                                selected && <li key={disease}>{disease}</li>
+                              ))}
+                              {selectedSubmission.plant_conditions.otherDisease && (
+                                <li>Other: {selectedSubmission.plant_conditions.otherDisease}</li>
+                              )}
+                            </ul>
+                          </li>
+                        )}
+
+                        {selectedSubmission.plant_conditions.Other && (
+                          <li>
+                            Other condition:
+                            {selectedSubmission.plant_conditions.otherConditionText && (
+                              <span className="ml-2 font-medium">{selectedSubmission.plant_conditions.otherConditionText}</span>
+                            )}
+                          </li>
+                        )}
+                      </ul>
                     </div>
                   )}
-              </div>
+
+                  {/* Trait Measurements Details */}
+                  {selectedSubmission.trait_measurements && (
+                    <div>
+                      <strong>Trait Measurements:</strong>
+                      <ul className="list-disc list-inside ml-4">
+                        {selectedSubmission.trait_measurements.culm_length > 0 && (
+                          <li>Culm Length: {selectedSubmission.trait_measurements.culm_length} cm</li>
+                        )}
+                        {selectedSubmission.trait_measurements.panicle_length > 0 && (
+                          <li>Panicle Length: {selectedSubmission.trait_measurements.panicle_length} cm</li>
+                        )}
+                        {selectedSubmission.trait_measurements.panicles_per_hill > 0 && (
+                          <li>Panicles per Hill: {selectedSubmission.trait_measurements.panicles_per_hill}</li>
+                        )}
+                        {selectedSubmission.trait_measurements.hills_observed > 0 && (
+                          <li>Hills Observed: {selectedSubmission.trait_measurements.hills_observed}</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedSubmission.notes && (
+                    <div>
+                      <strong>Notes:</strong>
+                      <p className="mt-1 text-gray-700">
+                        {selectedSubmission.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedSubmission.images &&
+                    selectedSubmission.images.length > 0 && (
+                      <div>
+                        <strong>Images:</strong>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedSubmission.images.map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Submission Image ${index + 1}`}
+                              className="w-24 h-24 object-cover rounded-lg cursor-pointer"
+                              onClick={() => window.open(image, "_blank")}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedSubmission.videos &&
+                    selectedSubmission.videos.length > 0 && (
+                      <div>
+                        <strong>Videos:</strong>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedSubmission.videos.map((video, index) => (
+                            <div
+                              key={index}
+                              className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center cursor-pointer"
+                              onClick={() => window.open(video, "_blank")}
+                            >
+                              <PlayCircle className="w-10 h-10 text-gray-600" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedSubmission.audio &&
+                    selectedSubmission.audio.length > 0 && (
+                      <div>
+                        <strong>Audio:</strong>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedSubmission.audio.map((audio, index) => (
+                            <div
+                              key={index}
+                              className="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center cursor-pointer"
+                              onClick={() => window.open(audio, "_blank")}
+                            >
+                              <Music className="w-10 h-10 text-gray-600" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {selectedSubmission.coordinates && (
+                    <div>
+                      <strong>Coordinates:</strong>
+                      <p className="mt-1 text-gray-700">
+                        Latitude: {selectedSubmission.coordinates.latitude},
+                        Longitude: {selectedSubmission.coordinates.longitude}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="pt-4 mt-6 border-t">
                 <Button

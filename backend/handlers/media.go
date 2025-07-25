@@ -17,32 +17,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ImageHandler struct {
+type MediaHandler struct {
 	storageService   *services.StorageService
 	firestoreService *services.FirestoreService
 }
 
-func NewImageHandler(storageService *services.StorageService, firestoreService *services.FirestoreService) *ImageHandler {
-	return &ImageHandler{
+func NewMediaHandler(storageService *services.StorageService, firestoreService *services.FirestoreService) *MediaHandler {
+	return &MediaHandler{
 		storageService:   storageService,
 		firestoreService: firestoreService,
 	}
 }
 
-// @Summary Upload an image
-// @Description Upload an image for a submission
-// @Tags images
+// @Summary Upload a media file (image, video, or audio)
+// @Description Upload a media file for a submission
+// @Tags media
 // @Accept  multipart/form-data
 // @Produce  json
 // @Security ApiKeyAuth
 // @Param submission_id formData string true "Submission ID"
-// @Param image formData file true "Image file"
+// @Param file_type formData string true "Type of file (image, video, audio)"
+// @Param file formData file true "Media file"
 // @Success 200 {object} models.SuccessResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /images/upload [post]
-func (ih *ImageHandler) UploadImage(c *gin.Context) {
+// @Router /media/upload [post]
+func (mh *MediaHandler) UploadMedia(c *gin.Context) {
 	submissionID := c.PostForm("submission_id")
+	fileType := c.PostForm("file_type")
+
 	if submissionID == "" {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "invalid_request",
@@ -50,9 +53,16 @@ func (ih *ImageHandler) UploadImage(c *gin.Context) {
 		})
 		return
 	}
+	if fileType == "" {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{
+			Error:   "invalid_request",
+			Message: "file_type is required",
+		})
+		return
+	}
 
 	// Get uploaded file
-	file, header, err := c.Request.FormFile("image")
+	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "invalid_request",
@@ -64,10 +74,10 @@ func (ih *ImageHandler) UploadImage(c *gin.Context) {
 
 	// Validate file type
 	ext := filepath.Ext(header.Filename)
-	if !utils.ValidateFileType(header.Filename) {
+	if !utils.ValidateMediaType(header.Filename, fileType) {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "invalid_file_type",
-			Message: "Only JPG, JPEG, PNG, and WebP files are allowed",
+			Message: fmt.Sprintf("Unsupported file type for %s", fileType),
 		})
 		return
 	}
@@ -80,8 +90,8 @@ func (ih *ImageHandler) UploadImage(c *gin.Context) {
 		ext)
 
 	// Upload to Google Cloud Storage
-	ctx := ih.storageService.Context()
-	obj := ih.storageService.Bucket().Object(filename)
+	ctx := mh.storageService.Context()
+	obj := mh.storageService.Bucket().Object(filename)
 
 	wc := obj.NewWriter(ctx)
 	wc.ContentType = header.Header.Get("Content-Type")
@@ -105,20 +115,20 @@ func (ih *ImageHandler) UploadImage(c *gin.Context) {
 	// Make the object publicly accessible
 	if err := obj.ACL().Set(ctx, storage.AllUsers, storage.RoleReader); err != nil {
 		// Log error but don't fail the request
-		fmt.Printf("Failed to make object public: %v\n", err)
+		fmt.Printf("Failed to make object public: %v", err)
 	}
 
 	// Generate public URL
-	imageURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s",
-		ih.storageService.BucketName, filename)
+	mediaURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s",
+		mh.storageService.BucketName, filename)
 
-	// Update submission with image URL if it's a real submission
+	// Update submission with media URL if it's a real submission
 	if submissionID != "" && submissionID[:5] != "temp_" {
-		err = ih.addImageToSubmission(submissionID, imageURL)
+		err = mh.addMediaToSubmission(submissionID, mediaURL, fileType)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 				Error:   "internal_error",
-				Message: "Failed to update submission with image",
+				Message: "Failed to update submission with media",
 			})
 			return
 		}
@@ -127,49 +137,48 @@ func (ih *ImageHandler) UploadImage(c *gin.Context) {
 	c.JSON(http.StatusOK, models.SuccessResponse{
 		Success: true,
 		Data: map[string]interface{}{
-			"filename": filename,
-			"url":      imageURL,
+			"filename":  filename,
+			"url":       mediaURL,
+			"file_type": fileType,
 		},
-		Message: "Image uploaded successfully",
+		Message: "Media uploaded successfully",
 	})
 }
 
-// @Summary Get an image
-// @Description Get an image by its filename
-// @Tags images
-// @Param filename path string true "Image filename"
-// @Success 308 {string} string "Redirects to the image URL"
-// @Router /images/{filename} [get]
-func (ih *ImageHandler) GetImage(c *gin.Context) {
+// @Summary Get a media file
+// @Description Get a media file by its filename
+// @Tags media
+// @Param filename path string true "Media filename"
+// @Success 308 {string} string "Redirects to the media URL"
+// @Router /media/{filename} [get]
+func (mh *MediaHandler) GetMedia(c *gin.Context) {
 	filename := c.Param("filename")
 
 	// Redirect to Google Cloud Storage public URL
-	imageURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s",
-		ih.storageService.BucketName, filename)
+	mediaURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s",
+		mh.storageService.BucketName, filename)
 
-	c.Redirect(http.StatusPermanentRedirect, imageURL)
+	c.Redirect(http.StatusPermanentRedirect, mediaURL)
 }
 
-// @Summary Delete an image
-// @Description Delete an image by its filename
-// @Tags images
+// @Summary Delete a media file
+// @Description Delete a media file by its filename
+// @Tags media
 // @Produce  json
 // @Security ApiKeyAuth
-// @Param filename path string true "Image filename"
+// @Param filename path string true "Media filename"
 // @Success 200 {object} models.SuccessResponse
 // @Failure 403 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
-// @Router /images/{filename} [delete]
-func (ih *ImageHandler) DeleteImage(c *gin.Context) {
+// @Router /media/{filename} [delete]
+func (mh *MediaHandler) DeleteMedia(c *gin.Context) {
 	filename := c.Param("filename")
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
-	// Only admin or the owner can delete images
+	// Only admin or the owner can delete media
 	if user.Role != "admin" {
-		// TODO: Check if user owns the submission
-		// Extract submission ID from filename (first part before first underscore)
-		// This is a simplified check
+		// TODO: Implement proper ownership check based on submission ID
 		c.JSON(http.StatusForbidden, models.ErrorResponse{
 			Error:   "forbidden",
 			Message: "Access denied",
@@ -177,28 +186,28 @@ func (ih *ImageHandler) DeleteImage(c *gin.Context) {
 		return
 	}
 
-	ctx := ih.storageService.Context()
-	obj := ih.storageService.Bucket().Object(filename)
+	ctx := mh.storageService.Context()
+	obj := mh.storageService.Bucket().Object(filename)
 
 	if err := obj.Delete(ctx); err != nil {
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "delete_failed",
-			Message: "Failed to delete image",
+			Message: "Failed to delete media",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.SuccessResponse{
 		Success: true,
-		Message: "Image deleted successfully",
+		Message: "Media deleted successfully",
 	})
 }
 
-func (ih *ImageHandler) addImageToSubmission(submissionID, imageURL string) error {
-	ctx := ih.firestoreService.Context()
-	docRef := ih.firestoreService.Submissions().Doc(submissionID)
+func (mh *MediaHandler) addMediaToSubmission(submissionID, mediaURL, fileType string) error {
+	ctx := mh.firestoreService.Context()
+	docRef := mh.firestoreService.Submissions().Doc(submissionID)
 
-	return ih.firestoreService.Client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+	return mh.firestoreService.Client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		doc, err := tx.Get(docRef)
 		if err != nil {
 			return err
@@ -207,7 +216,14 @@ func (ih *ImageHandler) addImageToSubmission(submissionID, imageURL string) erro
 		var submission models.Submission
 		doc.DataTo(&submission)
 
-		submission.Images = append(submission.Images, imageURL)
+		switch fileType {
+		case "image":
+			submission.Images = append(submission.Images, mediaURL)
+		case "video":
+			submission.Videos = append(submission.Videos, mediaURL)
+		case "audio":
+			submission.Audio = append(submission.Audio, mediaURL)
+		}
 		submission.UpdatedAt = time.Now()
 
 		return tx.Set(docRef, submission)

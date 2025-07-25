@@ -25,7 +25,9 @@ const GrowthStageSelector = ({ selected, onSelect }) => {
   const stages = [
     "Seedling",
     "Tillering",
-    "Panicle Initiation",
+    "Panicle",
+    "Booting",
+    "Heading",
     "Flowering",
     "Milk Stage",
     "Dough Stage",
@@ -57,7 +59,7 @@ const GrowthStageSelector = ({ selected, onSelect }) => {
  * Image Uploader Component - Fixed Version
  * Handles image upload with drag-and-drop functionality
  */
-const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
+const MediaUploader = ({ onMediaUpload, onRemoveMedia, mediaFiles = [], loading = false }) => {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -83,8 +85,25 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
 
   const handleFileUpload = (files) => {
     Array.from(files).forEach((file) => {
-      if (file.type.startsWith("image/")) {
-        onImageUpload(file);
+      if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+        // Check video duration
+        if (file.type.startsWith("video/")) {
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => {
+            window.URL.revokeObjectURL(video.src);
+            if (video.duration > 30) {
+              alert('Video duration exceeds 30 seconds. Please upload a shorter video.');
+            } else {
+              onMediaUpload(file);
+            }
+          };
+          video.src = URL.createObjectURL(file);
+        } else {
+          onMediaUpload(file);
+        }
+      } else {
+        alert('Unsupported file type. Please upload an image or a video.');
       }
     });
   };
@@ -93,11 +112,6 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  };
-
-  const handleRemoveImage = (index) => {
-    // This would need to be implemented to remove images
-    console.log("Remove image at index:", index);
   };
 
   return (
@@ -112,9 +126,9 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
         onDrop={handleDrop}
       >
         <Camera className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <p className="mb-2 text-gray-600">Tap to capture or upload images</p>
+        <p className="mb-2 text-gray-600">Tap to capture or upload images/videos</p>
         <p className="mb-4 text-sm text-gray-500">
-          Multiple images supported • JPG, PNG, WebP
+          Multiple files supported • JPG, PNG, WebP, MP4, MOV (max 30s)
         </p>
 
         {/* Hidden file input */}
@@ -122,7 +136,7 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*"
+          accept="image/*,video/mp4,video/quicktime"
           onChange={(e) => {
             if (e.target.files) {
               handleFileUpload(e.target.files);
@@ -140,23 +154,31 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
           disabled={loading}
           leftIcon={loading ? <Loader className="animate-spin" /> : <Plus />}
         >
-          {loading ? "Uploading..." : "Add Photos"}
+          {loading ? "Uploading..." : "Add Files"}
         </Button>
       </div>
 
-      {/* Display uploaded images */}
-      {images.length > 0 && (
+      {/* Display uploaded media files */}
+      {mediaFiles.length > 0 && (
         <div className="flex gap-2 mt-4 overflow-x-auto">
-          {images.map((image, index) => (
+          {mediaFiles.map((file, index) => (
             <div key={index} className="relative flex-shrink-0 w-32 group">
-              <img
-                src={image}
-                alt={`Upload ${index + 1}`}
-                className="object-contain w-full h-24 border rounded-lg"
-              />
+              {file.type.startsWith("image/") ? (
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={`Upload ${index + 1}`}
+                  className="object-contain w-full h-24 border rounded-lg"
+                />
+              ) : (
+                <video
+                  src={URL.createObjectURL(file)}
+                  controls
+                  className="object-contain w-full h-24 border rounded-lg"
+                />
+              )}
               <button
                 type="button"
-                onClick={() => handleRemoveImage(index)}
+                onClick={() => onRemoveMedia(file)}
                 className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
               >
                 <X className="w-3 h-3" />
@@ -168,6 +190,155 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
     </div>
   );
 };
+
+const AudioRecorderUploader = ({ onAudioUpload, onRemoveAudio, audioFiles = [], loading = false }) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
+  const audioFileInputRef = useRef(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      recorder.start();
+      setIsRecording(true);
+      setAudioChunks([]);
+
+      recorder.ondataavailable = (event) => {
+        setAudioChunks((prev) => [...prev, event.data]);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        if (audioBlob.size > 0) {
+          // Check duration (approximate for webm, more accurate for mp3/wav if converted)
+          // For simplicity, we'll assume 1 minute max for now. More robust check would involve decoding.
+          if (audioBlob.size / 1024 / 1024 > 1) { // Rough estimate: 1MB for 1 minute of audio
+            alert('Audio duration exceeds 1 minute. Please record a shorter audio.');
+          } else {
+            onAudioUpload(audioBlob);
+          }
+        }
+        stream.getTracks().forEach(track => track.stop());
+      };
+    } catch (err) {
+      alert('Error accessing microphone: ' + err.message);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleAudioFileUpload = (files) => {
+    Array.from(files).forEach((file) => {
+      if (file.type.startsWith("audio/")) {
+        // For uploaded audio, we can't easily check duration client-side without decoding.
+        // We'll rely on backend validation for now, or a more complex client-side library.
+        onAudioUpload(file);
+      } else {
+        alert('Unsupported file type. Please upload an audio file.');
+      }
+    });
+  };
+
+  const handleButtonClick = () => {
+    if (audioFileInputRef.current) {
+      audioFileInputRef.current.click();
+    }
+  };
+
+  return (
+    <div>
+      <div
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          isRecording ? "border-red-400 bg-red-50" : "border-gray-300"
+        } ${loading ? "opacity-50" : "hover:border-gray-400"}`}
+      >
+        <div className="flex justify-center mb-4">
+          {!isRecording ? (
+            <Button
+              type="button"
+              variant="primary"
+              onClick={startRecording}
+              disabled={loading}
+              leftIcon={<Plus />}
+            >
+              Start Recording
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="danger"
+              onClick={stopRecording}
+              disabled={loading}
+              leftIcon={<X />}
+            >
+              Stop Recording
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleButtonClick}
+            disabled={loading || isRecording}
+            leftIcon={<Plus />}
+            className="ml-2"
+          >
+            Upload Audio
+          </Button>
+        </div>
+        <p className="mb-4 text-sm text-gray-500">
+          Record or upload audio • Max 1 minute
+        </p>
+
+        {/* Hidden file input */}
+        <input
+          ref={audioFileInputRef}
+          type="file"
+          multiple
+          accept="audio/*"
+          onChange={(e) => {
+            if (e.target.files) {
+              handleAudioFileUpload(e.target.files);
+            }
+          }}
+          style={{ display: "none" }}
+          disabled={loading || isRecording}
+        />
+      </div>
+
+      {/* Display uploaded audio files */}
+      {audioFiles.length > 0 && (
+        <div className="flex gap-2 mt-4 overflow-x-auto">
+          {audioFiles.map((file, index) => (
+            <div key={index} className="relative flex-shrink-0 w-32 group">
+              <audio
+                src={URL.createObjectURL(file)}
+                controls
+                className="w-full"
+              />
+              <button
+                type="button"
+                onClick={() => onRemoveAudio(file)}
+                className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 /**
  * Monitoring Form Component
  * Main form for collecting rice monitoring data
@@ -178,6 +349,9 @@ const ImageUploader = ({ onImageUpload, images = [], loading = false }) => {
  * @param {function} props.showToast - Function to show toast notifications
  * @param {function} props.onSubmissionSuccess - Callback when submission is successful
  */
+
+
+
 const MonitoringForm = ({
   onLogout,
   currentUser,
@@ -191,7 +365,27 @@ const MonitoringForm = ({
     date: new Date().toISOString().split("T")[0], // Today's date
     location: "",
     growthStage: "",
-    plantConditions: {},
+    plantConditions: {
+      Healthy: false,
+      Unhealthy: false,
+      "Signs of pest infestation": false,
+      pestDetails: {},
+      otherPest: "",
+      "Signs of nutrient deficiency": false,
+      nutrientDeficiencyDetails: {},
+      otherNutrient: "",
+      "Water stress (drought or flood)": false,
+      waterStressLevel: "",
+      "Lodging (bent/broken stems)": false,
+      lodgingLevel: "",
+      "Weed infestation": false,
+      weedInfestationLevel: "",
+      "Disease symptoms": false,
+      diseaseDetails: {},
+      otherDisease: "",
+      Other: false,
+      otherConditionText: "",
+    },
     measurements: {
       culmLength: "",
       panicleLength: "",
@@ -200,11 +394,58 @@ const MonitoringForm = ({
     },
     notes: "",
     images: [],
+    videos: [],
+    audio: [],
   });
 
   const [loading, setLoading] = useState(false);
-  const [imageUploadLoading, setImageUploadLoading] = useState(false);
+  const [mediaUploadLoading, setMediaUploadLoading] = useState(false);
+  const [audioUploadLoading, setAudioUploadLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+
+  const requestLocation = () => {
+    return new Promise((resolve) => {
+      if (!("geolocation" in navigator)) {
+        if (showToast) {
+          showToast("Geolocation is not supported by your browser.", "error");
+        }
+        return resolve(null);
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setUserLocation(location);
+          resolve(location);
+        },
+        (error) => {
+          let errorMessage = "An unknown error occurred.";
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage =
+                "Location access denied. Please enable it in your browser settings.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "The request to get user location timed out.";
+              break;
+          }
+          if (showToast) {
+            showToast(errorMessage, "error");
+          }
+          setLocationError(errorMessage);
+          resolve(null); // Resolve with null to allow submission without location
+        }
+      );
+    });
+  };
 
   const conditionOptions = [
     "Healthy",
@@ -217,6 +458,144 @@ const MonitoringForm = ({
     "Disease symptoms",
     "Other",
   ];
+
+  const pestOptions = [
+    "Rice stem borers",
+    "Brown plant hooper",
+    "Rice mealybug",
+    "Unknown",
+    "Others",
+  ];
+
+  const nutrientDeficiencyOptions = [
+    "Nitrogen",
+    "Phosphorus",
+    "Potassium",
+    "Zinc",
+    "Unknown",
+    "Others",
+  ];
+
+  const diseaseOptions = [
+    "False smut",
+    "Blast",
+    "Sheath blight",
+    "Panicle blight",
+    "Bacterial Blight",
+    "Unknown",
+    "Others",
+  ];
+
+  const waterStressOptions = ["High", "Medium", "Low"];
+
+  const handlePestDetailChange = (pest) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        pestDetails: {
+          ...prev.plantConditions.pestDetails,
+          [pest]: !prev.plantConditions.pestDetails?.[pest],
+        },
+      },
+    }));
+  };
+
+  const handleOtherPestChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        otherPest: value,
+      },
+    }));
+  };
+
+  const handleNutrientDetailChange = (nutrient) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        nutrientDeficiencyDetails: {
+          ...prev.plantConditions.nutrientDeficiencyDetails,
+          [nutrient]: !prev.plantConditions.nutrientDeficiencyDetails?.[nutrient],
+        },
+      },
+    }));
+  };
+
+  const handleOtherNutrientChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        otherNutrient: value,
+      },
+    }));
+  };
+
+  const handleWaterStressChange = (level) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        waterStressLevel: level,
+      },
+    }));
+  };
+
+  const handleLodgingChange = (level) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        lodgingLevel: level,
+      },
+    }));
+  };
+
+  const handleWeedInfestationChange = (level) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        weedInfestationLevel: level,
+      },
+    }));
+  };
+
+  const handleDiseaseDetailChange = (disease) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        diseaseDetails: {
+          ...prev.plantConditions.diseaseDetails,
+          [disease]: !prev.plantConditions.diseaseDetails?.[disease],
+        },
+      },
+    }));
+  };
+
+  const handleOtherDiseaseChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        otherDisease: value,
+      },
+    }));
+  };
+
+  const handleOtherConditionChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      plantConditions: {
+        ...prev.plantConditions,
+        otherConditionText: value,
+      },
+    }));
+  };
 
   /**
    * Handle form field changes
@@ -253,52 +632,92 @@ const MonitoringForm = ({
    * Handle plant condition checkbox changes
    */
   const handleConditionChange = (condition) => {
-    setFormData((prev) => ({
-      ...prev,
-      plantConditions: {
-        ...prev.plantConditions,
-        [condition]: !prev.plantConditions[condition],
-      },
-    }));
+    setFormData((prev) => {
+      const newConditions = { ...prev.plantConditions };
+
+      // Toggle the selected condition
+      newConditions[condition] = !newConditions[condition];
+
+      // Enforce mutual exclusivity for Healthy/Unhealthy
+      if (condition === "Healthy" && newConditions.Healthy) {
+        newConditions.Unhealthy = false;
+      } else if (condition === "Unhealthy" && newConditions.Unhealthy) {
+        newConditions.Healthy = false;
+      }
+
+      // Clear pest details if "Signs of pest infestation" is unchecked
+      if (condition === "Signs of pest infestation" && !newConditions["Signs of pest infestation"]) {
+        newConditions.pestDetails = {};
+        newConditions.otherPest = "";
+      }
+      
+      // Clear nutrient deficiency details if "Signs of nutrient deficiency" is unchecked
+      if (condition === "Signs of nutrient deficiency" && !newConditions["Signs of nutrient deficiency"]) {
+        newConditions.nutrientDeficiencyDetails = {};
+        newConditions.otherNutrient = "";
+      }
+
+      // Clear water stress details if "Water stress (drought or flood)" is unchecked
+      if (condition === "Water stress (drought or flood)" && !newConditions["Water stress (drought or flood)"]) {
+        newConditions.waterStressLevel = "";
+      }
+
+      // Clear lodging details if "Lodging (bent/broken stems)" is unchecked
+      if (condition === "Lodging (bent/broken stems)" && !newConditions["Lodging (bent/broken stems)"]) {
+        newConditions.lodgingLevel = "";
+      }
+
+      // Clear weed infestation details if "Weed infestation" is unchecked
+      if (condition === "Weed infestation" && !newConditions["Weed infestation"]) {
+        newConditions.weedInfestationLevel = "";
+      }
+
+      // Clear disease details if "Disease symptoms" is unchecked
+      if (condition === "Disease symptoms" && !newConditions["Disease symptoms"]) {
+        newConditions.diseaseDetails = {};
+        newConditions.otherDisease = "";
+      }
+
+      // Clear other condition text if "Other" is unchecked
+      if (condition === "Other" && !newConditions.Other) {
+        newConditions.otherConditionText = "";
+      }
+
+      return {
+        ...prev,
+        plantConditions: newConditions,
+      };
+    });
   };
 
   /**
    * Handle image upload
    */
-  const handleImageUpload = async (file) => {
-    if (!file || !file.type.startsWith("image/")) {
-      if (showToast) {
-        showToast("Please select a valid image file", "error");
-      }
-      return;
+  const handleMediaUpload = (file) => {
+    if (file.type.startsWith("image/")) {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, file],
+      }));
+    } else if (file.type.startsWith("video/")) {
+      setFormData((prev) => ({
+        ...prev,
+        videos: [...prev.videos, file],
+      }));
     }
+  };
 
-    setImageUploadLoading(true);
-    try {
-      // For now, create a temporary submission ID for image upload
-      const tempSubmissionId = "temp_" + Date.now();
-
-      const response = await apiService.uploadImage(file, tempSubmissionId);
-
-      if (response.success) {
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, response.data.url],
-        }));
-
-        if (showToast) {
-          showToast("Image uploaded successfully", "success");
-        }
-      } else {
-        throw new Error(response.message || "Failed to upload image");
-      }
-    } catch (error) {
-      // console.error('Image upload error:', error);
-      if (showToast) {
-        showToast("Failed to upload image: " + error.message, "error");
-      }
-    } finally {
-      setImageUploadLoading(false);
+  const handleRemoveMedia = (fileToRemove) => {
+    if (fileToRemove.type.startsWith("image/")) {
+      setFormData((prev) => ({
+        ...prev,
+        images: prev.images.filter((file) => file !== fileToRemove),
+      }));
+    } else if (fileToRemove.type.startsWith("video/")) {
+      setFormData((prev) => ({
+        ...prev,
+        videos: prev.videos.filter((file) => file !== fileToRemove),
+      }));
     }
   };
 
@@ -342,15 +761,37 @@ const MonitoringForm = ({
     }
 
     setLoading(true);
+
     try {
+      // 1. Request location permission and get location
+      const location = await requestLocation();
+
+      // 2. Create submission without media URLs
       const submissionData = {
-        field_id: formData.location.trim(), // You might want to implement field selection
+        field_id: formData.location.trim(),
         date: new Date(formData.date).toISOString(),
-        location: formData.location.trim(),
         growth_stage: formData.growthStage,
-        plant_conditions: Object.keys(formData.plantConditions).filter(
-          (key) => formData.plantConditions[key]
-        ),
+        plant_conditions: {
+          Healthy: formData.plantConditions.Healthy || false,
+          Unhealthy: formData.plantConditions.Unhealthy || false,
+          "Signs of pest infestation": formData.plantConditions["Signs of pest infestation"] || false,
+          pestDetails: formData.plantConditions.pestDetails || {},
+          otherPest: formData.plantConditions.otherPest || "",
+          "Signs of nutrient deficiency": formData.plantConditions["Signs of nutrient deficiency"] || false,
+          nutrientDeficiencyDetails: formData.plantConditions.nutrientDeficiencyDetails || {},
+          otherNutrient: formData.plantConditions.otherNutrient || "",
+          "Water stress (drought or flood)": formData.plantConditions["Water stress (drought or flood)"] || false,
+          waterStressLevel: formData.plantConditions.waterStressLevel || "",
+          "Lodging (bent/broken stems)": formData.plantConditions["Lodging (bent/broken stems)"] || false,
+          lodgingLevel: formData.plantConditions.lodgingLevel || "",
+          "Weed infestation": formData.plantConditions["Weed infestation"] || false,
+          weedInfestationLevel: formData.plantConditions.weedInfestationLevel || "",
+          "Disease symptoms": formData.plantConditions["Disease symptoms"] || false,
+          diseaseDetails: formData.plantConditions.diseaseDetails || {},
+          otherDisease: formData.plantConditions.otherDisease || "",
+          Other: formData.plantConditions.Other || false,
+          otherConditionText: formData.plantConditions.otherConditionText || "",
+        },
         trait_measurements: {
           culm_length: parseFloat(formData.measurements.culmLength) || 0,
           panicle_length: parseFloat(formData.measurements.panicleLength) || 0,
@@ -360,8 +801,73 @@ const MonitoringForm = ({
         },
         notes: formData.notes.trim(),
         observer_name: currentUser?.name || currentUser?.email || "Unknown",
-        images:formData.images
+        ...(location && { coordinates: location }),
       };
+
+      const createResponse = await apiService.createSubmission(submissionData);
+
+      if (!createResponse.success || !createResponse.data || !createResponse.data.id) {
+        throw new Error(createResponse.message || "Failed to create submission or get submission ID");
+      }
+
+      const submissionId = createResponse.data.id;
+      const imageUrls = [];
+      const videoUrls = [];
+      const audioUrls = [];
+
+      // 3. Upload images, videos, and audio using the submissionId
+      if (formData.images.length > 0 || formData.videos.length > 0 || formData.audio.length > 0) {
+        setMediaUploadLoading(true);
+        setAudioUploadLoading(true);
+
+        const uploadPromises = [];
+
+        formData.images.forEach((file) => {
+          uploadPromises.push(apiService.uploadMedia(file, "image", submissionId));
+        });
+
+        formData.videos.forEach((file) => {
+          uploadPromises.push(apiService.uploadMedia(file, "video", submissionId));
+        });
+
+        formData.audio.forEach((file) => {
+          uploadPromises.push(apiService.uploadMedia(file, "audio", submissionId));
+        });
+
+        const responses = await Promise.all(uploadPromises);
+
+        responses.forEach((response) => {
+          if (response.success) {
+            if (response.data.file_type === "image") {
+              imageUrls.push(response.data.url);
+            } else if (response.data.file_type === "video") {
+              videoUrls.push(response.data.url);
+            } else if (response.data.file_type === "audio") {
+              audioUrls.push(response.data.url);
+            }
+          } else {
+            console.error("Failed to upload a file:", response.message);
+            // Do not throw error here, allow submission to proceed with partial media if some uploads fail
+          }
+        });
+
+        setMediaUploadLoading(false);
+        setAudioUploadLoading(false);
+      }
+
+      // 4. Update submission with media URLs
+      if (imageUrls.length > 0 || videoUrls.length > 0 || audioUrls.length > 0) {
+        const updateData = {
+          images: imageUrls,
+          videos: videoUrls,
+          audio: audioUrls,
+        };
+        const updateResponse = await apiService.updateSubmission(submissionId, updateData);
+        if (!updateResponse.success) {
+          console.error("Failed to update submission with media URLs:", updateResponse.message);
+          // Do not throw error here, allow submission to proceed even if update fails
+        }
+      }
 
       const response = await apiService.createSubmission(submissionData);
 
@@ -380,7 +886,11 @@ const MonitoringForm = ({
           },
           notes: "",
           images: [],
+          videos: [],
+          audio: [],
         });
+        setUserLocation(null);
+        setLocationError(null);
 
         if (showToast) {
           showToast("Submission created successfully!", "success");
@@ -393,12 +903,12 @@ const MonitoringForm = ({
         throw new Error(response.message || "Failed to create submission");
       }
     } catch (error) {
-      // console.error('Submission error:', error);
       if (showToast) {
         showToast("Failed to create submission: " + error.message, "error");
       }
     } finally {
       setLoading(false);
+      setMediaUploadLoading(false);
     }
   };
 
@@ -477,12 +987,45 @@ const MonitoringForm = ({
           )}
         </InputField>
 
-        {/* Image Upload */}
-        <InputField label="Upload Images" icon={Camera}>
-          <ImageUploader
-            onImageUpload={handleImageUpload}
-            images={formData.images}
-            loading={imageUploadLoading}
+        {/* Image/Video Upload */}
+        <InputField label="Upload Files (Images/Videos)" icon={Camera}>
+          <MediaUploader
+            onMediaUpload={handleMediaUpload}
+            onRemoveMedia={(fileToRemove) => {
+              if (fileToRemove.type.startsWith("image/")) {
+                setFormData((prev) => ({
+                  ...prev,
+                  images: prev.images.filter((file) => file !== fileToRemove),
+                }));
+              } else if (fileToRemove.type.startsWith("video/")) {
+                setFormData((prev) => ({
+                  ...prev,
+                  videos: prev.videos.filter((file) => file !== fileToRemove),
+                }));
+              }
+            }}
+            mediaFiles={[...formData.images, ...formData.videos]}
+            loading={mediaUploadLoading}
+          />
+        </InputField>
+
+        {/* Audio Record/Upload */}
+        <InputField label="Voice Record / Upload" icon={Camera}>
+          <AudioRecorderUploader
+            onAudioUpload={(file) => {
+              setFormData((prev) => ({
+                ...prev,
+                audio: [...prev.audio, file],
+              }));
+            }}
+            onRemoveAudio={(fileToRemove) => {
+              setFormData((prev) => ({
+                ...prev,
+                audio: prev.audio.filter((file) => file !== fileToRemove),
+              }));
+            }}
+            audioFiles={formData.audio}
+            loading={audioUploadLoading}
           />
         </InputField>
 
@@ -490,12 +1033,166 @@ const MonitoringForm = ({
         <InputField label="Plant Condition" icon={Leaf}>
           <div className="space-y-1">
             {conditionOptions.map((condition) => (
-              <Checkbox
-                key={condition}
-                label={condition}
-                checked={formData.plantConditions[condition] || false}
-                onChange={() => handleConditionChange(condition)}
-              />
+              <div key={condition}>
+                <Checkbox
+                  label={condition}
+                  checked={formData.plantConditions[condition] || false}
+                  onChange={() => handleConditionChange(condition)}
+                  disabled={
+                    (condition === "Unhealthy" && formData.plantConditions.Healthy) ||
+                    (condition === "Healthy" && formData.plantConditions.Unhealthy)
+                  }
+                />
+                {condition === "Signs of pest infestation" &&
+                  formData.plantConditions["Signs of pest infestation"] && (
+                    <div className="pl-6 mt-2 space-y-1 border-l-2 border-gray-200 ml-3">
+                      {pestOptions.map((pest) => (
+                        <div key={pest}>
+                          <Checkbox
+                            label={pest}
+                            checked={formData.plantConditions.pestDetails?.[pest] || false}
+                            onChange={() => handlePestDetailChange(pest)}
+                          />
+                          {pest === "Others" &&
+                            formData.plantConditions.pestDetails?.Others && (
+                              <div className="mt-2 ml-6">
+                                <TextInput
+                                  placeholder="Please specify other pest"
+                                  value={formData.plantConditions.otherPest || ""}
+                                  onChange={(e) =>
+                                    handleOtherPestChange(e.target.value)
+                                  }
+                                />
+                              </div>
+                            )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {condition === "Signs of nutrient deficiency" &&
+                  formData.plantConditions["Signs of nutrient deficiency"] && (
+                    <div className="pl-6 mt-2 space-y-1 border-l-2 border-gray-200 ml-3">
+                      {nutrientDeficiencyOptions.map((nutrient) => (
+                        <div key={nutrient}>
+                          <Checkbox
+                            label={nutrient}
+                            checked={formData.plantConditions.nutrientDeficiencyDetails?.[nutrient] || false}
+                            onChange={() => handleNutrientDetailChange(nutrient)}
+                          />
+                          {nutrient === "Others" &&
+                            formData.plantConditions.nutrientDeficiencyDetails?.Others && (
+                              <div className="mt-2 ml-6">
+                                <TextInput
+                                  placeholder="Please specify other nutrient deficiency"
+                                  value={formData.plantConditions.otherNutrient || ""}
+                                  onChange={(e) =>
+                                    handleOtherNutrientChange(e.target.value)
+                                  }
+                                />
+                              </div>
+                            )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {condition === "Water stress (drought or flood)" &&
+                    formData.plantConditions["Water stress (drought or flood)"] && (
+                      <div className="pl-6 mt-2 space-y-1 border-l-2 border-gray-200 ml-3">
+                        <div className="flex items-center space-x-4">
+                          {waterStressOptions.map((level) => (
+                            <label key={level} className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="waterStressLevel"
+                                value={level}
+                                checked={formData.plantConditions.waterStressLevel === level}
+                                onChange={() => handleWaterStressChange(level)}
+                                className="form-radio h-4 w-4 text-green-600 transition duration-150 ease-in-out"
+                              />
+                              <span>{level}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  {condition === "Lodging (bent/broken stems)" &&
+                    formData.plantConditions["Lodging (bent/broken stems)"] && (
+                      <div className="pl-6 mt-2 space-y-1 border-l-2 border-gray-200 ml-3">
+                        <div className="flex items-center space-x-4">
+                          {waterStressOptions.map((level) => (
+                            <label key={level} className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="lodgingLevel"
+                                value={level}
+                                checked={formData.plantConditions.lodgingLevel === level}
+                                onChange={() => handleLodgingChange(level)}
+                                className="form-radio h-4 w-4 text-green-600 transition duration-150 ease-in-out"
+                              />
+                              <span>{level}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  {condition === "Weed infestation" &&
+                    formData.plantConditions["Weed infestation"] && (
+                      <div className="pl-6 mt-2 space-y-1 border-l-2 border-gray-200 ml-3">
+                        <div className="flex items-center space-x-4">
+                          {waterStressOptions.map((level) => (
+                            <label key={level} className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="weedInfestationLevel"
+                                value={level}
+                                checked={formData.plantConditions.weedInfestationLevel === level}
+                                onChange={() => handleWeedInfestationChange(level)}
+                                className="form-radio h-4 w-4 text-green-600 transition duration-150 ease-in-out"
+                              />
+                              <span>{level}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  {condition === "Disease symptoms" &&
+                    formData.plantConditions["Disease symptoms"] && (
+                      <div className="pl-6 mt-2 space-y-1 border-l-2 border-gray-200 ml-3">
+                        {diseaseOptions.map((disease) => (
+                          <div key={disease}>
+                            <Checkbox
+                              label={disease}
+                              checked={formData.plantConditions.diseaseDetails?.[disease] || false}
+                              onChange={() => handleDiseaseDetailChange(disease)}
+                            />
+                            {disease === "Others" &&
+                              formData.plantConditions.diseaseDetails?.Others && (
+                                <div className="mt-2 ml-6">
+                                  <TextInput
+                                    placeholder="Please specify other disease"
+                                    value={formData.plantConditions.otherDisease || ""}
+                                    onChange={(e) =>
+                                      handleOtherDiseaseChange(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  {condition === "Other" && formData.plantConditions.Other && (
+                    <div className="mt-2 ml-6">
+                      <TextInput
+                        placeholder="Please specify other condition"
+                        value={formData.plantConditions.otherConditionText || ""}
+                        onChange={(e) =>
+                          handleOtherConditionChange(e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+              </div>
             ))}
           </div>
         </InputField>
@@ -606,5 +1303,7 @@ const MonitoringForm = ({
     </div>
   );
 };
+
+
 
 export default MonitoringForm;
