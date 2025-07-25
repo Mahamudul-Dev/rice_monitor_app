@@ -9,6 +9,7 @@ import {
   Eye,
   PlayCircle, // Added for video icon
   Music,      // Added for audio icon
+  Edit,
 } from "lucide-react";
 import apiService from "../services/apiService";
 import Card, { CardBody, CardFooter } from "./common/Card";
@@ -23,12 +24,14 @@ import Button, { ButtonGroup } from "./common/Button";
  * @param {function} props.onLogout - Function to handle user logout
  * @param {Object} props.currentUser - Current logged-in user data
  * @param {function} props.showToast - Function to show toast notifications
+ * @param {function} props.onEditSubmission - Function to handle editing a submission
  */
 const SubmissionsScreen = ({
   setActiveTab,
   onLogout,
   currentUser,
   showToast,
+  onEditSubmission,
 }) => {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -357,6 +360,14 @@ const SubmissionsScreen = ({
                     leftIcon={<Eye />}
                   >
                     View Details
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onEditSubmission(submission.id)}
+                    leftIcon={<Edit />}
+                  >
+                    Edit
                   </Button>
                 </ButtonGroup>
               </CardFooter>

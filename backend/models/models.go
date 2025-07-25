@@ -108,11 +108,15 @@ type CreateSubmissionRequest struct {
 
 // UpdateSubmissionRequest represents the request payload for updating submissions
 type UpdateSubmissionRequest struct {
-	Location          *string            `json:"location,omitempty"`
+	Date              *time.Time         `json:"date,omitempty"`
 	GrowthStage       *string            `json:"growth_stage,omitempty"`
-	PlantConditions   []string           `json:"plant_conditions,omitempty"`
+	PlantConditions   *PlantConditions   `json:"plant_conditions,omitempty"`
 	TraitMeasurements *TraitMeasurements `json:"trait_measurements,omitempty"`
+	Coordinates       *Location          `json:"coordinates,omitempty"`
 	Notes             *string            `json:"notes,omitempty"`
+	Images            []string           `json:"images,omitempty"`
+	Videos            []string           `json:"videos,omitempty"`
+	Audio             []string           `json:"audio,omitempty"`
 	Status            *string            `json:"status,omitempty"`
 }
 type SubmissionResponse struct {

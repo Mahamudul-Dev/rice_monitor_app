@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Leaf, FileText, Loader } from "lucide-react";
+import { Leaf, FileText, Loader, Edit } from "lucide-react";
 
 // Import components
 import LoginScreen from "./components/LoginScreen";
 import MonitoringForm from "./components/MonitoringForm";
 import SubmissionsScreen from "./components/SubmissionsScreen";
+import EditSubmissionScreen from "./components/EditSubmissionScreen"; // Import the new component
 import Toast, { useToast } from "./components/common/Toast";
 
 // Import services and utilities
@@ -52,6 +53,7 @@ function App() {
 
   // Navigation state
   const [activeTab, setActiveTab] = useState("form");
+  const [editingSubmissionId, setEditingSubmissionId] = useState(null); // New state for editing
 
   // Toast notifications
   const { toasts, removeToast, success, error, warning, info } = useToast();
@@ -77,6 +79,7 @@ function App() {
         setIsLoggedIn(false);
         setCurrentUser(null);
         setActiveTab("form");
+        setEditingSubmissionId(null); // Clear editing state on logout
 
         if (showMessage) {
           info("You have been logged out successfully");
@@ -162,11 +165,12 @@ function App() {
   };
 
   /**
-   * Handle successful form submission
+   * Handle successful form submission (create or update)
    */
   const handleSubmissionSuccess = () => {
-    // Switch to submissions tab to show the new submission
+    // Switch to submissions tab to show the new/updated submission
     setActiveTab("submissions");
+    setEditingSubmissionId(null); // Clear editing state
   };
 
   /**
@@ -234,7 +238,7 @@ function App() {
   return (
     <div className="min-h-screen  bg-gray-50">
       {/* Main Content */}
-      {activeTab === "form" && (
+      {activeTab === "form" && !editingSubmissionId && (
         <MonitoringForm
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -243,17 +247,34 @@ function App() {
         />
       )}
 
-      {activeTab === "submissions" && (
+      {activeTab === "submissions" && !editingSubmissionId && (
         <SubmissionsScreen
           currentUser={currentUser}
           setActiveTab={setActiveTab}
           onLogout={handleLogout}
           showToast={showToast}
+          onEditSubmission={(id) => {
+            setEditingSubmissionId(id);
+            setActiveTab("form"); // Navigate to form tab for editing
+          }}
+        />
+      )}
+
+      {editingSubmissionId && (
+        <EditSubmissionScreen
+          submissionId={editingSubmissionId}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          showToast={showToast}
+          onSubmissionUpdated={handleSubmissionSuccess}
+          onBack={() => setEditingSubmissionId(null)} // Go back to submissions list
         />
       )}
 
       {/* Bottom Navigation */}
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      {!editingSubmissionId && (
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      )}
 
       {/* Toast Notifications */}
       {toasts.map((toast) => (
@@ -277,3 +298,4 @@ function App() {
 }
 
 export default App;
+

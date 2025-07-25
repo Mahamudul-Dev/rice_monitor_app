@@ -139,6 +139,14 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async deleteMedia(url) {
+    const response = await fetch(`${API_BASE_URL}/media?url=${encodeURIComponent(url)}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
   // Fields methods
   async getFields() {
     const response = await fetch(`${API_BASE_URL}/fields`, {
