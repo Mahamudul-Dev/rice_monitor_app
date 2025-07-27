@@ -16,6 +16,7 @@ import InputField, { TextInput, TextArea, Checkbox, Select } from "./common/Inpu
 import Button from "./common/Button";
 import apiService from "../services/apiService";
 import { useLocations } from "../hooks/useLocations";
+import { AudioRecorderUploader } from "./AudioRecorder";
 
 /**
  * Growth Stage Selector Component
@@ -191,152 +192,6 @@ const MediaUploader = ({ onMediaUpload, onRemoveMedia, mediaFiles = [], loading 
   );
 };
 
-const AudioRecorderUploader = ({ onAudioUpload, onRemoveAudio, audioFiles = [], loading = false }) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioChunks, setAudioChunks] = useState([]);
-  const audioFileInputRef = useRef(null);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
-      recorder.start();
-      setIsRecording(true);
-      setAudioChunks([]);
-
-      recorder.ondataavailable = (event) => {
-        setAudioChunks((prev) => [...prev, event.data]);
-      };
-
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        if (audioBlob.size > 0) {
-          // Check duration (approximate for webm, more accurate for mp3/wav if converted)
-          // For simplicity, we'll assume 1 minute max for now. More robust check would involve decoding.
-          if (audioBlob.size / 1024 / 1024 > 1) { // Rough estimate: 1MB for 1 minute of audio
-            alert('Audio duration exceeds 1 minute. Please record a shorter audio.');
-          } else {
-            onAudioUpload(audioBlob);
-          }
-        }
-        stream.getTracks().forEach(track => track.stop());
-      };
-    } catch (err) {
-      alert('Error accessing microphone: ' + err.message);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handleAudioFileUpload = (files) => {
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith("audio/")) {
-        // For uploaded audio, we can't easily check duration client-side without decoding.
-        // We'll rely on backend validation for now, or a more complex client-side library.
-        onAudioUpload(file);
-      } else {
-        alert('Unsupported file type. Please upload an audio file.');
-      }
-    });
-  };
-
-  const handleButtonClick = () => {
-    if (audioFileInputRef.current) {
-      audioFileInputRef.current.click();
-    }
-  };
-
-  return (
-    <div>
-      <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isRecording ? "border-red-400 bg-red-50" : "border-gray-300"
-        } ${loading ? "opacity-50" : "hover:border-gray-400"}`}
-      >
-        <div className="flex justify-center mb-4">
-          {!isRecording ? (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={startRecording}
-              disabled={loading}
-              leftIcon={<Plus />}
-            >
-              Start Recording
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="danger"
-              onClick={stopRecording}
-              disabled={loading}
-              leftIcon={<X />}
-            >
-              Stop Recording
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleButtonClick}
-            disabled={loading || isRecording}
-            leftIcon={<Plus />}
-            className="ml-2"
-          >
-            Upload Audio
-          </Button>
-        </div>
-        <p className="mb-4 text-sm text-gray-500">
-          Record or upload audio • Max 1 minute
-        </p>
-
-        {/* Hidden file input */}
-        <input
-          ref={audioFileInputRef}
-          type="file"
-          multiple
-          accept="audio/*"
-          onChange={(e) => {
-            if (e.target.files) {
-              handleAudioFileUpload(e.target.files);
-            }
-          }}
-          style={{ display: "none" }}
-          disabled={loading || isRecording}
-        />
-      </div>
-
-      {/* Display uploaded audio files */}
-      {audioFiles.length > 0 && (
-        <div className="flex gap-2 mt-4 overflow-x-auto">
-          {audioFiles.map((file, index) => (
-            <div key={index} className="relative flex-shrink-0 w-32 group">
-              <audio
-                src={URL.createObjectURL(file)}
-                controls
-                className="w-full"
-              />
-              <button
-                type="button"
-                onClick={() => onRemoveAudio(file)}
-                className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 
 /**
@@ -731,9 +586,9 @@ const MonitoringForm = ({
       newErrors.date = "Date is required";
     }
 
-    if (!formData.location.trim()) {
-      newErrors.location = "Location is required";
-    }
+    // if (!formData.location.trim()) {
+    //   newErrors.location = "Location is required";
+    // }
 
     if (!formData.growthStage) {
       newErrors.growthStage = "Growth stage is required";
@@ -752,6 +607,7 @@ const MonitoringForm = ({
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form data before submission:", formData);
 
     if (!validateForm()) {
       if (showToast) {
@@ -823,6 +679,7 @@ const MonitoringForm = ({
         const uploadPromises = [];
 
         formData.images.forEach((file) => {
+          console.log("Uploading image:", file.name);
           uploadPromises.push(apiService.uploadMedia(file, "image", submissionId));
         });
 
@@ -831,6 +688,7 @@ const MonitoringForm = ({
         });
 
         formData.audio.forEach((file) => {
+          console.log("Uploading audio:", file.name);
           uploadPromises.push(apiService.uploadMedia(file, "audio", submissionId));
         });
 
@@ -956,7 +814,7 @@ const MonitoringForm = ({
         <InputField
       label="Location of Field"
       icon={MapPin}
-      required
+      // required
       error={errors.location}
     >
       <Select

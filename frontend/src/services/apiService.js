@@ -117,6 +117,7 @@ class ApiService {
 
   // Media methods
   async uploadMedia(file, fileType, submissionId) {
+    console.log("Uploading media:", file.name);
     const token = localStorage.getItem("access_token");
     const formData = new FormData();
     formData.append("file", file);
