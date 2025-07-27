@@ -61,13 +61,15 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	}
 
 	// // Order by creation date (newest first)
-	// query = query.OrderBy("created_at", firestore.Desc)
+	query = query.OrderBy("created_at", firestore.Desc)
 
 	// Apply pagination
 	if page > 1 {
 		query = query.Offset((page - 1) * limit)
 	}
 	query = query.Limit(limit)
+
+	
 
 	// Execute query
 	docs, err := query.Documents(ctx).GetAll()
@@ -475,8 +477,8 @@ func (sh *SubmissionHandler) ExportSubmissions(c *gin.Context) {
 	// Write CSV content
 	csvContent := "ID,Date,Location,Growth Stage,Observer,Status\n"
 	for _, s := range submissions {
-		csvContent += fmt.Sprintf("%s,%s,%s,%s,%s\n",
-			s.ID, s.Date.Format("2006-01-02"), s.GrowthStage, s.ObserverName, s.Status)
+		csvContent += fmt.Sprintf("%s,%s,%s,%s,%s,%s\n",
+			s.ID, s.Date.Format("2006-01-02"), s.FieldID, s.GrowthStage,s.ObserverName, s.Status)
 	}
 
 	c.String(http.StatusOK, csvContent)

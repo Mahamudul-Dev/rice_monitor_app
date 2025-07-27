@@ -1,7 +1,5 @@
 // Google OAuth Integration utilities
 
-
-
 /**
  * Get Google Auth instance
  * @returns {Object} Google Auth instance
@@ -17,9 +15,9 @@ export const getGoogleAuthInstance = () => {
 export const signInWithGoogle = async () => {
   const authInstance = getGoogleAuthInstance();
   if (!authInstance) {
-    throw new Error('Google Auth not initialized');
+    throw new Error("Google Auth not initialized");
   }
-  
+
   try {
     const googleUser = await authInstance.signIn();
     return googleUser;
@@ -38,7 +36,7 @@ export const signOutFromGoogle = async () => {
     try {
       await authInstance.signOut();
     } catch (error) {
-      console.warn('Google sign-out failed:', error);
+      console.warn("Google sign-out failed:", error);
     }
   }
 };
@@ -70,12 +68,12 @@ export const getCurrentGoogleUser = () => {
 export const tokenManager = {
   /**
    * Store authentication tokens
-   * @param {string} accessToken 
-   * @param {string} refreshToken 
+   * @param {string} accessToken
+   * @param {string} refreshToken
    */
   storeTokens: (accessToken, refreshToken) => {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    localStorage.setItem("access_token", accessToken);
+    localStorage.setItem("refresh_token", refreshToken);
   },
 
   /**
@@ -83,7 +81,7 @@ export const tokenManager = {
    * @returns {string|null} Access token or null
    */
   getAccessToken: () => {
-    return localStorage.getItem('access_token');
+    return localStorage.getItem("access_token");
   },
 
   /**
@@ -91,15 +89,15 @@ export const tokenManager = {
    * @returns {string|null} Refresh token or null
    */
   getRefreshToken: () => {
-    return localStorage.getItem('refresh_token');
+    return localStorage.getItem("refresh_token");
   },
 
   /**
    * Clear all tokens
    */
   clearTokens: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
   },
 
   /**
@@ -107,8 +105,8 @@ export const tokenManager = {
    * @returns {boolean} True if access token exists
    */
   hasAccessToken: () => {
-    return !!localStorage.getItem('access_token');
-  }
+    return !!localStorage.getItem("access_token");
+  },
 };
 
 /**
@@ -117,10 +115,10 @@ export const tokenManager = {
 export const userManager = {
   /**
    * Store user data
-   * @param {Object} userData 
+   * @param {Object} userData
    */
   storeUser: (userData) => {
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem("user", JSON.stringify(userData));
   },
 
   /**
@@ -129,10 +127,10 @@ export const userManager = {
    */
   getUser: () => {
     try {
-      const userData = localStorage.getItem('user');
+      const userData = localStorage.getItem("user");
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
-      console.error('Error parsing user data:', error);
+      console.error("Error parsing user data:", error);
       return null;
     }
   },
@@ -141,7 +139,7 @@ export const userManager = {
    * Clear stored user data
    */
   clearUser: () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem("user");
   },
 
   /**
@@ -149,8 +147,8 @@ export const userManager = {
    * @returns {boolean} True if user data exists
    */
   hasUser: () => {
-    return !!localStorage.getItem('user');
-  }
+    return !!localStorage.getItem("user");
+  },
 };
 
 /**
@@ -161,9 +159,9 @@ export const completeLogout = async () => {
     // Sign out from Google
     await signOutFromGoogle();
   } catch (error) {
-    console.warn('Google sign-out error:', error);
+    console.warn("Google sign-out error:", error);
   }
-  
+
   // Clear local storage
   tokenManager.clearTokens();
   userManager.clearUser();
@@ -179,7 +177,7 @@ export const isAuthenticated = () => {
 
 /**
  * Validate email format
- * @param {string} email 
+ * @param {string} email
  * @returns {boolean} True if email is valid
  */
 export const isValidEmail = (email) => {
@@ -189,7 +187,7 @@ export const isValidEmail = (email) => {
 
 /**
  * Extract user info from Google Credential JWT
- * @param {Object} credentialResponse 
+ * @param {Object} credentialResponse
  * @returns {Object} Decoded user info
  */
 
@@ -199,16 +197,21 @@ export const isValidEmail = (email) => {
  */
 export const initializeGoogleAuth = (onCredentialResponse) => {
   return new Promise((resolve, reject) => {
-    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+    if (
+      !window.google ||
+      !window.google.accounts ||
+      !window.google.accounts.id
+    ) {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = () => {
         setupGoogleLogin(onCredentialResponse);
         resolve();
       };
-      script.onerror = () => reject(new Error('Failed to load Google Identity script'));
+      script.onerror = () =>
+        reject(new Error("Failed to load Google Identity script"));
       document.head.appendChild(script);
     } else {
       setupGoogleLogin(onCredentialResponse);
@@ -219,18 +222,19 @@ export const initializeGoogleAuth = (onCredentialResponse) => {
 
 const setupGoogleLogin = (onCredentialResponse) => {
   window.google.accounts.id.initialize({
-    client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+    client_id:
+      "427992046730-96pcouhg8anuib12t4ldi3n75etrdbcl.apps.googleusercontent.com",
     callback: onCredentialResponse,
   });
 
   window.google.accounts.id.renderButton(
-    document.querySelector('.g_id_signin'),
+    document.querySelector(".g_id_signin"),
     {
-      theme: 'outline',
-      size: 'large',
-      text: 'continue_with',
-      shape: 'rectangular',
-      logo_alignment: 'left',
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      shape: "rectangular",
+      logo_alignment: "left",
     }
   );
 };
@@ -240,16 +244,17 @@ const setupGoogleLogin = (onCredentialResponse) => {
  */
 export const extractGoogleUserInfo = (credentialResponse) => {
   const token = credentialResponse?.credential;
-  if (!token || typeof token !== 'string') {
-    throw new Error('Invalid Google credential');
+  if (!token || typeof token !== "string") {
+    throw new Error("Invalid Google credential");
   }
 
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const base64Url = token.split(".")[1];
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
   const jsonPayload = decodeURIComponent(
-    atob(base64).split('').map(c =>
-      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-    ).join('')
+    atob(base64)
+      .split("")
+      .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+      .join("")
   );
 
   const payload = JSON.parse(jsonPayload);

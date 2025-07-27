@@ -211,8 +211,7 @@ const SubmissionsScreen = ({
       <div className="flex-1 p-4 pb-20">
         {/* Filters and Actions */}
         <div className="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
-          {/* Status Filter */}
-          <div className="flex flex-wrap gap-2">
+          {/* <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               variant={filters.status === "" ? "primary" : "outline"}
@@ -243,7 +242,7 @@ const SubmissionsScreen = ({
             >
               Approved
             </Button>
-          </div>
+          </div> */}
 
           {/* Actions */}
           <ButtonGroup>

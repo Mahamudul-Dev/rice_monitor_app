@@ -16,6 +16,7 @@ import InputField, { TextInput, TextArea, Checkbox, Select } from "./common/Inpu
 import Button from "./common/Button";
 import apiService from "../services/apiService";
 import { useLocations } from "../hooks/useLocations";
+import { AudioRecorderUploader } from "./AudioRecorder";
 
 /**
  * Growth Stage Selector Component
@@ -55,11 +56,9 @@ const GrowthStageSelector = ({ selected, onSelect }) => {
   );
 };
 
-/**
- * Image Uploader Component - Fixed Version
- * Handles image upload with drag-and-drop functionality
- */
-const MediaUploader = ({ onMediaUpload, onRemoveNewMedia, onRemoveExistingMedia, mediaFiles = [], loading = false, existingMedia = [] }) => {
+
+
+const MediaUploader = ({ onMediaUpload, onRemoveMedia, mediaFiles = [], loading = false }) => {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -83,29 +82,43 @@ const MediaUploader = ({ onMediaUpload, onRemoveNewMedia, onRemoveExistingMedia,
     }
   };
 
-  const handleFileUpload = (files) => {
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
-        // Check video duration
-        if (file.type.startsWith("video/")) {
-          const video = document.createElement('video');
-          video.preload = 'metadata';
-          video.onloadedmetadata = () => {
-            window.URL.revokeObjectURL(video.src);
-            if (video.duration > 30) {
-              alert('Video duration exceeds 30 seconds. Please upload a shorter video.');
-            } else {
-              onMediaUpload(file);
-            }
-          };
-          video.src = URL.createObjectURL(file);
-        } else {
-          onMediaUpload(file);
+  const checkVideoDuration = (file) => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(video.duration);
+      };
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleFileUpload = async (files) => {
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith("image/")) {
+        onMediaUpload(file);
+      } else if (file.type.startsWith("video/")) {
+        try {
+          const duration = await checkVideoDuration(file);
+          if (duration > 30) {
+            alert('Video duration exceeds 30 seconds. Please upload a shorter video.');
+          } else {
+            onMediaUpload(file);
+          }
+        } catch (err) {
+          console.error('Error checking video duration:', err);
+          // Fallback - check file size if duration check fails
+          if (file.size > 50 * 1024 * 1024) { // 50MB
+            alert('Video file is too large. Max 30 seconds allowed.');
+          } else {
+            onMediaUpload(file);
+          }
         }
       } else {
         alert('Unsupported file type. Please upload an image or a video.');
       }
-    });
+    }
   };
 
   const handleButtonClick = () => {
@@ -178,7 +191,7 @@ const MediaUploader = ({ onMediaUpload, onRemoveNewMedia, onRemoveExistingMedia,
               )}
               <button
                 type="button"
-                onClick={() => onRemoveNewMedia(file)}
+                onClick={() => onRemoveMedia(file)}
                 className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
               >
                 <X className="w-3 h-3" />
@@ -187,212 +200,12 @@ const MediaUploader = ({ onMediaUpload, onRemoveNewMedia, onRemoveExistingMedia,
           ))}
         </div>
       )}
-
-      {existingMedia.length > 0 && (
-        <div className="mt-4">
-          <p className="text-sm text-gray-600 mb-2">Existing Files:</p>
-          <div className="flex gap-2 overflow-x-auto">
-            {existingMedia.map((url, index) => (
-              <div key={url} className="relative flex-shrink-0 w-32 group">
-                {url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                  <img
-                    src={url}
-                    alt={`Existing ${index + 1}`}
-                    className="object-contain w-full h-24 border rounded-lg"
-                  />
-                ) : (
-                  <video
-                    src={url}
-                    controls
-                    className="object-contain w-full h-24 border rounded-lg"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => onRemoveExistingMedia(url)}
-                  className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-const AudioRecorderUploader = ({ onAudioUpload, onRemoveNewAudio, onRemoveExistingAudio, audioFiles = [], loading = false, existingAudio = [] }) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioChunks, setAudioChunks] = useState([]);
-  const audioFileInputRef = useRef(null);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
-      recorder.start();
-      setIsRecording(true);
-      setAudioChunks([]);
 
-      recorder.ondataavailable = (event) => {
-        setAudioChunks((prev) => [...prev, event.data]);
-      };
-
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        if (audioBlob.size > 0) {
-          // Check duration (approximate for webm, more accurate for mp3/wav if converted)
-          // For simplicity, we'll assume 1 minute max for now. More robust check would involve decoding.
-          if (audioBlob.size / 1024 / 1024 > 1) { // Rough estimate: 1MB for 1 minute of audio
-            alert('Audio duration exceeds 1 minute. Please record a shorter audio.');
-          } else {
-            onAudioUpload(audioBlob);
-          }
-        }
-        stream.getTracks().forEach(track => track.stop());
-      };
-    } catch (err) {
-      alert('Error accessing microphone: ' + err.message);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handleAudioFileUpload = (files) => {
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith("audio/")) {
-        // For uploaded audio, we can't easily check duration client-side without decoding.
-        // We'll rely on backend validation for now, or a more complex client-side library.
-        onAudioUpload(file);
-      } else {
-        alert('Unsupported file type. Please upload an audio file.');
-      }
-    });
-  };
-
-  const handleButtonClick = () => {
-    if (audioFileInputRef.current) {
-      audioFileInputRef.current.click();
-    }
-  };
-
-  return (
-    <div>
-      <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          isRecording ? "border-red-400 bg-red-50" : "border-gray-300"
-        } ${loading ? "opacity-50" : "hover:border-gray-400"}`}
-      >
-        <div className="flex justify-center mb-4">
-          {!isRecording ? (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={startRecording}
-              disabled={loading}
-              leftIcon={<Plus />}
-            >
-              Start Recording
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="danger"
-              onClick={stopRecording}
-              disabled={loading}
-              leftIcon={<X />}
-            >
-              Stop Recording
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleButtonClick}
-            disabled={loading || isRecording}
-            leftIcon={<Plus />}
-            className="ml-2"
-          >
-            Upload Audio
-          </Button>
-        </div>
-        <p className="mb-4 text-sm text-gray-500">
-          Record or upload audio • Max 1 minute
-        </p>
-
-        {/* Hidden file input */}
-        <input
-          ref={audioFileInputRef}
-          type="file"
-          multiple
-          accept="audio/*"
-          onChange={(e) => {
-            if (e.target.files) {
-              handleAudioFileUpload(e.target.files);
-            }
-          }}
-          style={{ display: "none" }}
-          disabled={loading || isRecording}
-        />
-      </div>
-
-      {/* Display uploaded audio files */}
-      {audioFiles.length > 0 && (
-        <div className="flex gap-2 mt-4 overflow-x-auto">
-          {audioFiles.map((file, index) => (
-            <div key={index} className="relative flex-shrink-0 w-32 group">
-              <audio
-                src={URL.createObjectURL(file)}
-                controls
-                className="w-full"
-              />
-              <button
-                type="button"
-                onClick={() => onRemoveNewAudio(file)}
-                className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {existingAudio.length > 0 && (
-        <div className="mt-4">
-          <p className="text-sm text-gray-600 mb-2">Existing Audio:</p>
-          <div className="flex gap-2 overflow-x-auto">
-            {existingAudio.map((url, index) => (
-              <div key={url} className="relative flex-shrink-0 w-32 group">
-                <audio
-                  src={url}
-                  controls
-                  className="w-full"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemoveExistingAudio(url)}
-                  className="absolute p-1 text-white transition-opacity bg-red-500 rounded-full opacity-0 top-1 right-1 hover:bg-red-600 group-hover:opacity-100"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 
 /**
@@ -947,6 +760,7 @@ const EditSubmissionScreen = ({
         });
 
         formData.newAudio.forEach((file) => {
+          console.log(file)
           uploadPromises.push(apiService.uploadMedia(file, "audio", submissionId));
         });
 
