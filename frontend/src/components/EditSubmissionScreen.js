@@ -232,6 +232,8 @@ const EditSubmissionScreen = ({
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
+    location: "",
+    otherFieldName: "",
     growthStage: "",
     plantConditions: {
       Healthy: false,
@@ -289,8 +291,10 @@ const EditSubmissionScreen = ({
         const response = await apiService.getSubmission(submissionId);
         if (response.success && response.data) {
           const data = response.data;
-          setFormData({
+          const initialFormData = {
             date: new Date(data.date).toISOString().split("T")[0],
+            location: data.field_id,
+            otherFieldName: data.other_field_name || "",
             growthStage: data.growth_stage,
             plantConditions: {
               Healthy: data.plant_conditions?.Healthy || false,
@@ -326,7 +330,13 @@ const EditSubmissionScreen = ({
             existingImages: data.images || [],
             existingVideos: data.videos || [],
             existingAudio: data.audio || [],
-          });
+          };
+
+          if (data.other_field_name) {
+            initialFormData.location = "others";
+          }
+
+          setFormData(initialFormData);
           setUserLocation(data.coordinates || null);
         } else {
           showToast(response.message || "Failed to load submission data.", "error");
@@ -544,6 +554,13 @@ const EditSubmissionScreen = ({
       [field]: value,
     }));
 
+    if (field === "location" && value !== "others") {
+      setFormData((prev) => ({
+        ...prev,
+        otherFieldName: "",
+      }));
+    }
+
     // Clear error when field is updated
     if (errors[field]) {
       setErrors((prev) => ({
@@ -710,6 +727,12 @@ const EditSubmissionScreen = ({
       newErrors.date = "Date is required";
     }
 
+    if (!formData.location.trim()) {
+      newErrors.location = "Location is required";
+    } else if (formData.location === "others" && !formData.otherFieldName.trim()) {
+      newErrors.otherFieldName = "Please specify the field name";
+    }
+
     if (!formData.growthStage) {
       newErrors.growthStage = "Growth stage is required";
     }
@@ -792,6 +815,8 @@ const EditSubmissionScreen = ({
 
       // 3. Prepare update payload
       const updatePayload = {
+        field_id: formData.location.trim(),
+        ...(formData.location === "others" && { other_field_name: formData.otherFieldName.trim() }),
         date: new Date(formData.date).toISOString(),
         growth_stage: formData.growthStage,
         plant_conditions: {
@@ -925,6 +950,40 @@ const EditSubmissionScreen = ({
             error={errors.date}
             max={new Date().toISOString().split("T")[0]} // Cannot select future dates
           />
+        </InputField>
+
+        {/* Location */}
+        <InputField
+          label="Location of Field"
+          icon={MapPin}
+          required
+          error={errors.location || errors.otherFieldName}
+        >
+          <Select
+            value={formData.location}
+            onChange={(e) => handleInputChange("location", e.target.value)}
+            options={[
+              ...locations.map((loc) => ({
+                value: loc.id,
+                label: `${loc.name} (${loc.location})`,
+              })),
+              { value: "others", label: "Others" },
+            ]}
+            placeholder="Select field location"
+            error={errors.location}
+          />
+          {formData.location === "others" && (
+            <div className="mt-4">
+              <TextInput
+                placeholder="Please specify field name"
+                value={formData.otherFieldName}
+                onChange={(e) =>
+                  handleInputChange("otherFieldName", e.target.value)
+                }
+                error={errors.otherFieldName}
+              />
+            </div>
+          )}
         </InputField>
 
         {/* Growth Stage */}

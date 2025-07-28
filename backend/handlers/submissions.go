@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"rice-monitor-api/models"
@@ -41,8 +43,6 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
-	fmt.Println(user)
-
 	// Parse query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -51,30 +51,23 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 	ctx := sh.firestoreService.Context()
 	query := sh.firestoreService.Submissions().Query
 
-	fmt.Printf("Retrieving submissions (page %d, limit %d, status %s)\n", page, limit, status)
-
-	fmt.Println(query)
-
-	// // Filter by user (non-admin users can only see their submissions)
 	if user.Role != "admin" {
 		query = query.Where("user_id", "==", user.ID)
 	}
 
-	// // Order by creation date (newest first)
+	if status != "" {
+		query = query.Where("status", "==", status)
+	}
+
 	query = query.OrderBy("created_at", firestore.Desc)
 
-	// Apply pagination
 	if page > 1 {
 		query = query.Offset((page - 1) * limit)
 	}
 	query = query.Limit(limit)
 
-	
-
-	// Execute query
 	docs, err := query.Documents(ctx).GetAll()
 	if err != nil {
-		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to retrieve submissions",
@@ -82,34 +75,36 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Retrieved %d submissions\n", len(docs))
-
-	var submissionsResponse []models.SubmissionResponse
+	var submissions []models.Submission
+	fieldIDs := []string{}
 	for _, doc := range docs {
 		var submission models.Submission
 		doc.DataTo(&submission)
+		submissions = append(submissions, submission)
+		if submission.FieldID != "" {
+			fieldIDs = append(fieldIDs, submission.FieldID)
+		}
+	}
 
-		fieldDoc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
-
-		fmt.Println(fieldDoc)
-
-		var field *models.Field
+	fieldsMap := make(map[string]*models.Field)
+	if len(fieldIDs) > 0 {
+		fieldDocs, err := sh.firestoreService.Fields().Where("id", "in", fieldIDs).Documents(ctx).GetAll()
 		if err == nil {
-			field = &models.Field{}
-			fieldDoc.DataTo(field)
+			for _, fieldDoc := range fieldDocs {
+				var field models.Field
+				fieldDoc.DataTo(&field)
+				fieldsMap[field.ID] = &field
+			}
 		}
+	}
 
-		if err != nil {
-			fmt.Printf("Failed to get field for submission %s: %v\n", submission.ID, err)
-			// Optionally, you can skip this submission or return an error
-			continue
-		}
-
+	var submissionsResponse []models.SubmissionResponse
+	for _, submission := range submissions {
 		submissionsResponse = append(submissionsResponse, models.SubmissionResponse{
 			ID:                submission.ID,
 			UserID:            submission.UserID,
 			FieldID:           submission.FieldID,
-			Field:             *field, // Dereference the field pointer
+			Field:             fieldsMap[submission.FieldID],
 			Date:              submission.Date,
 			GrowthStage:       submission.GrowthStage,
 			PlantConditions:   submission.PlantConditions,
@@ -162,6 +157,29 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
+
+	// If OtherFieldName is provided, create a new field first
+	if req.OtherFieldName != "" {
+		newField := &models.Field{
+			ID:        utils.GenerateID(),
+			Name:      req.OtherFieldName,
+			OwnerID:   user.ID, // Or based on your logic
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		// Save the new field to Firestore
+		ctx := sh.firestoreService.Context()
+		_, err := sh.firestoreService.Fields().Doc(newField.ID).Set(ctx, newField)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to create new field",
+			})
+			return
+		}
+		// Update the request's FieldID to the new field's ID
+		req.FieldID = newField.ID
+	}
 
 	submission := &models.Submission{
 		ID:                utils.GenerateID(),
@@ -259,7 +277,7 @@ func (sh *SubmissionHandler) GetSubmission(c *gin.Context) {
 		ID:                submission.ID,
 		UserID:            submission.UserID,
 		FieldID:           submission.FieldID,
-		Field:             *field,
+		Field:             field,
 		Date:              submission.Date,
 		GrowthStage:       submission.GrowthStage,
 		PlantConditions:   submission.PlantConditions,
@@ -331,6 +349,27 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 			Message: "Access denied",
 		})
 		return
+	}
+
+	// Handle other_field_name if provided
+	if otherFieldName, ok := updateData["other_field_name"].(string); ok && otherFieldName != "" {
+		newField := &models.Field{
+			ID:        utils.GenerateID(),
+			Name:      otherFieldName,
+			OwnerID:   user.ID,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		_, err := sh.firestoreService.Fields().Doc(newField.ID).Set(ctx, newField)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to create new field",
+			})
+			return
+		}
+		updateData["field_id"] = newField.ID
+		delete(updateData, "other_field_name") // No need to store it in the submission document itself
 	}
 
 	// Remove sensitive fields
@@ -443,14 +482,30 @@ func (sh *SubmissionHandler) ExportSubmissions(c *gin.Context) {
 	ctx := sh.firestoreService.Context()
 	query := sh.firestoreService.Submissions().Query
 
-	// Filter by user (non-admin users can only export their submissions)
 	if user.Role != "admin" {
 		query = query.Where("user_id", "==", user.ID)
 	}
 
-	// Execute query
 	iter := query.Documents(ctx)
-	var submissions []models.Submission
+
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", "attachment; filename=submissions.csv")
+
+	writer := csv.NewWriter(c.Writer)
+
+	header := []string{
+		"ID", "UserID", "FieldID", "FieldName", "Date", "GrowthStage",
+		"Notes", "ObserverName", "Status", "CreatedAt", "UpdatedAt",
+		"Latitude", "Longitude",
+		"CulmLength", "PanicleLength", "PaniclesPerHill", "HillsObserved",
+		"Healthy", "Unhealthy", "SignsOfPestInfestation", "PestDetails", "OtherPest",
+		"SignsOfNutrientDeficiency", "NutrientDeficiencyDetails", "OtherNutrient",
+		"WaterStress", "WaterStressLevel", "Lodging", "LodgingLevel",
+		"WeedInfestation", "WeedInfestationLevel", "DiseaseSymptoms", "DiseaseDetails", "OtherDisease",
+		"Other", "OtherConditionText",
+		"Images", "Videos", "Audio",
+	}
+	writer.Write(header)
 
 	for {
 		doc, err := iter.Next()
@@ -467,19 +522,71 @@ func (sh *SubmissionHandler) ExportSubmissions(c *gin.Context) {
 
 		var submission models.Submission
 		doc.DataTo(&submission)
-		submissions = append(submissions, submission)
+
+		// Get Field Name
+		var fieldName string
+		if submission.FieldID != "" {
+			fieldDoc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
+			if err == nil {
+				var field models.Field
+				fieldDoc.DataTo(&field)
+				fieldName = field.Name
+			}
+		}
+
+		record := []string{
+			submission.ID,
+			submission.UserID,
+			submission.FieldID,
+			fieldName,
+			submission.Date.Format(time.RFC3339),
+			submission.GrowthStage,
+			submission.Notes,
+			submission.ObserverName,
+			submission.Status,
+			submission.CreatedAt.Format(time.RFC3339),
+			submission.UpdatedAt.Format(time.RFC3339),
+			fmt.Sprintf("%f", submission.Coordinates.Latitude),
+			fmt.Sprintf("%f", submission.Coordinates.Longitude),
+			fmt.Sprintf("%f", submission.TraitMeasurements.CulmLength),
+			fmt.Sprintf("%f", submission.TraitMeasurements.PanicleLength),
+			strconv.Itoa(submission.TraitMeasurements.PaniclesPerHill),
+			strconv.Itoa(submission.TraitMeasurements.HillsObserved),
+			strconv.FormatBool(submission.PlantConditions.Healthy),
+			strconv.FormatBool(submission.PlantConditions.Unhealthy),
+			strconv.FormatBool(submission.PlantConditions.SignsOfPestInfestation),
+			mapToString(submission.PlantConditions.PestDetails),
+			submission.PlantConditions.OtherPest,
+			strconv.FormatBool(submission.PlantConditions.SignsOfNutrientDeficiency),
+			mapToString(submission.PlantConditions.NutrientDeficiencyDetails),
+			submission.PlantConditions.OtherNutrient,
+			strconv.FormatBool(submission.PlantConditions.WaterStress),
+			submission.PlantConditions.WaterStressLevel,
+			strconv.FormatBool(submission.PlantConditions.Lodging),
+			submission.PlantConditions.LodgingLevel,
+			strconv.FormatBool(submission.PlantConditions.WeedInfestation),
+			submission.PlantConditions.WeedInfestationLevel,
+			strconv.FormatBool(submission.PlantConditions.DiseaseSymptoms),
+			mapToString(submission.PlantConditions.DiseaseDetails),
+			submission.PlantConditions.OtherDisease,
+			strconv.FormatBool(submission.PlantConditions.Other),
+			submission.PlantConditions.OtherConditionText,
+			strings.Join(submission.Images, ","),
+			strings.Join(submission.Videos, ","),
+			strings.Join(submission.Audio, ","),
+		}
+		writer.Write(record)
 	}
 
-	// Set CSV headers
-	c.Header("Content-Type", "text/csv")
-	c.Header("Content-Disposition", "attachment; filename=submissions.csv")
+	writer.Flush()
+}
 
-	// Write CSV content
-	csvContent := "ID,Date,Location,Growth Stage,Observer,Status\n"
-	for _, s := range submissions {
-		csvContent += fmt.Sprintf("%s,%s,%s,%s,%s,%s\n",
-			s.ID, s.Date.Format("2006-01-02"), s.FieldID, s.GrowthStage,s.ObserverName, s.Status)
+func mapToString(m map[string]bool) string {
+	var parts []string
+	for key, value := range m {
+		if value {
+			parts = append(parts, key)
+		}
 	}
-
-	c.String(http.StatusOK, csvContent)
+	return strings.Join(parts, ", ")
 }

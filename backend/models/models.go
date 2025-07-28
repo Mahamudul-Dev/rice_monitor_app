@@ -65,7 +65,7 @@ type PlantConditions struct {
 type Submission struct {
 	ID                string            `json:"id" firestore:"id"`
 	UserID            string            `json:"user_id" firestore:"user_id"`
-	FieldID           string            `json:"field_id" firestore:"field_id"`
+	FieldID           string            `json:"field_id,omitempty" firestore:"field_id,omitempty"`
 	Coordinates       Location          `json:"coordinates" firestore:"coordinates"`
 	Date              time.Time         `json:"date" firestore:"date"`
 	GrowthStage       string            `json:"growth_stage" firestore:"growth_stage"`
@@ -93,7 +93,8 @@ type TraitMeasurements struct {
 
 // CreateSubmissionRequest represents the request payload for creating submissions
 type CreateSubmissionRequest struct {
-	FieldID           string            `json:"field_id" binding:"required"`
+	FieldID           string            `json:"field_id,omitempty"`
+	OtherFieldName    string            `json:"other_field_name,omitempty"`
 	Date              time.Time         `json:"date" binding:"required"`
 	GrowthStage       string            `json:"growth_stage" binding:"required"`
 	PlantConditions   PlantConditions   `json:"plant_conditions"`
@@ -123,7 +124,8 @@ type SubmissionResponse struct {
 	ID                string            `json:"id"`
 	UserID            string            `json:"user_id"`
 	FieldID           string            `json:"field_id"`
-	Field             Field             `json:"field" `
+	Field             *Field            `json:"field,omitempty"`
+	OtherFieldName    string            `json:"other_field_name,omitempty"`
 	Date              time.Time         `json:"date"`
 	GrowthStage       string            `json:"growth_stage"`
 	PlantConditions   PlantConditions   `json:"plant_conditions"`

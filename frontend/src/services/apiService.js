@@ -120,7 +120,7 @@ class ApiService {
     console.log("Uploading media:", file.name);
     const token = localStorage.getItem("access_token");
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file, file.name);
     formData.append("file_type", fileType);
     formData.append("submission_id", submissionId);
 

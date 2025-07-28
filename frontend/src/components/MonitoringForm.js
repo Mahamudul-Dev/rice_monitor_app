@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import imageCompression from 'browser-image-compression';
 import {
   LogOut,
   Calendar,
@@ -219,6 +220,7 @@ const MonitoringForm = ({
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0], // Today's date
     location: "",
+    otherFieldName: "", // New state for other field name
     growthStage: "",
     plantConditions: {
       Healthy: false,
@@ -461,6 +463,14 @@ const MonitoringForm = ({
       [field]: value,
     }));
 
+    // If location changes to 'others', clear otherFieldName
+    if (field === "location" && value !== "others") {
+      setFormData((prev) => ({
+        ...prev,
+        otherFieldName: "",
+      }));
+    }
+
     // Clear error when field is updated
     if (errors[field]) {
       setErrors((prev) => ({
@@ -545,15 +555,27 @@ const MonitoringForm = ({
     });
   };
 
-  /**
-   * Handle image upload
-   */
-  const handleMediaUpload = (file) => {
+  const handleMediaUpload = async (file) => {
     if (file.type.startsWith("image/")) {
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, file],
-      }));
+      try {
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images, compressedFile],
+        }));
+      } catch (error) {
+        console.error("Error compressing image:", error);
+        // Fallback to original file if compression fails
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images, file],
+        }));
+      }
     } else if (file.type.startsWith("video/")) {
       setFormData((prev) => ({
         ...prev,
@@ -586,9 +608,11 @@ const MonitoringForm = ({
       newErrors.date = "Date is required";
     }
 
-    // if (!formData.location.trim()) {
-    //   newErrors.location = "Location is required";
-    // }
+    if (!formData.location.trim()) {
+      newErrors.location = "Location is required";
+    } else if (formData.location === "others" && !formData.otherFieldName.trim()) {
+      newErrors.otherFieldName = "Please specify the field name";
+    }
 
     if (!formData.growthStage) {
       newErrors.growthStage = "Growth stage is required";
@@ -625,6 +649,7 @@ const MonitoringForm = ({
       // 2. Create submission without media URLs
       const submissionData = {
         field_id: formData.location.trim(),
+        ...(formData.location === "others" && { other_field_name: formData.otherFieldName.trim() }),
         date: new Date(formData.date).toISOString(),
         growth_stage: formData.growthStage,
         plant_conditions: {
@@ -727,13 +752,14 @@ const MonitoringForm = ({
         }
       }
 
-      const response = await apiService.createSubmission(submissionData);
+      // const response = await apiService.createSubmission(submissionData);
 
-      if (response.success) {
+      if (createResponse.success) {
         // Reset form
         setFormData({
           date: new Date().toISOString().split("T")[0],
           location: "",
+          otherFieldName: "", // Reset otherFieldName
           growthStage: "",
           plantConditions: {},
           measurements: {
@@ -758,7 +784,7 @@ const MonitoringForm = ({
           onSubmissionSuccess();
         }
       } else {
-        throw new Error(response.message || "Failed to create submission");
+        throw new Error(createResponse.message || "Failed to create submission");
       }
     } catch (error) {
       if (showToast) {
@@ -820,13 +846,26 @@ const MonitoringForm = ({
       <Select
         value={formData.location}
         onChange={(e) => handleInputChange("location", e.target.value)}
-        options={locations.map(loc => ({
-          value: loc.id,
-          label: `${loc.name} (${loc.location})`
-        }))}
+        options={[
+          ...locations.map(loc => ({
+            value: loc.id,
+            label: `${loc.name} (${loc.location})`
+          })),
+          { value: "others", label: "Others" }
+        ]}
         placeholder="Select field location"
         error={errors.location}
       />
+      {formData.location === "others" && (
+        <div className="mt-4">
+          <TextInput
+            placeholder="Please specify field name"
+            value={formData.otherFieldName}
+            onChange={(e) => handleInputChange("otherFieldName", e.target.value)}
+            error={errors.otherFieldName}
+          />
+        </div>
+      )}
     </InputField>
 
         {/* Growth Stage */}
