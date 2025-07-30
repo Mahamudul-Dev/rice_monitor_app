@@ -18,12 +18,14 @@ import (
 )
 
 type SubmissionHandler struct {
-	firestoreService *services.FirestoreService
+	firestoreService    *services.FirestoreService
+	googleSheetsService *services.GoogleSheetsService
 }
 
-func NewSubmissionHandler(firestoreService *services.FirestoreService) *SubmissionHandler {
+func NewSubmissionHandler(firestoreService *services.FirestoreService, googleSheetsService *services.GoogleSheetsService) *SubmissionHandler {
 	return &SubmissionHandler{
-		firestoreService: firestoreService,
+		firestoreService:    firestoreService,
+		googleSheetsService: googleSheetsService,
 	}
 }
 
@@ -105,6 +107,7 @@ func (sh *SubmissionHandler) GetSubmissions(c *gin.Context) {
 			UserID:            submission.UserID,
 			FieldID:           submission.FieldID,
 			Field:             fieldsMap[submission.FieldID],
+			OtherFieldName:    submission.OtherFieldName,
 			Date:              submission.Date,
 			GrowthStage:       submission.GrowthStage,
 			PlantConditions:   submission.PlantConditions,
@@ -159,32 +162,33 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 	user := currentUser.(*models.User)
 
 	// If OtherFieldName is provided, create a new field first
-	if req.OtherFieldName != "" {
-		newField := &models.Field{
-			ID:        utils.GenerateID(),
-			Name:      req.OtherFieldName,
-			OwnerID:   user.ID, // Or based on your logic
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		// Save the new field to Firestore
-		ctx := sh.firestoreService.Context()
-		_, err := sh.firestoreService.Fields().Doc(newField.ID).Set(ctx, newField)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to create new field",
-			})
-			return
-		}
-		// Update the request's FieldID to the new field's ID
-		req.FieldID = newField.ID
-	}
+	// if req.OtherFieldName != "" {
+	// 	newField := &models.Field{
+	// 		ID:        utils.GenerateID(),
+	// 		Name:      req.OtherFieldName,
+	// 		OwnerID:   user.ID, // Or based on your logic
+	// 		CreatedAt: time.Now(),
+	// 		UpdatedAt: time.Now(),
+	// 	}
+	// 	// Save the new field to Firestore
+	// 	ctx := sh.firestoreService.Context()
+	// 	_, err := sh.firestoreService.Fields().Doc(newField.ID).Set(ctx, newField)
+	// 	if err != nil {
+	// 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+	// 			Error:   "internal_error",
+	// 			Message: "Failed to create new field",
+	// 		})
+	// 		return
+	// 	}
+	// 	// Update the request's FieldID to the new field's ID
+	// 	req.FieldID = newField.ID
+	// }
 
 	submission := &models.Submission{
 		ID:                utils.GenerateID(),
 		UserID:            user.ID,
 		FieldID:           req.FieldID,
+		OtherFieldName:    req.OtherFieldName,
 		Date:              req.Date,
 		GrowthStage:       req.GrowthStage,
 		PlantConditions:   req.PlantConditions,
@@ -211,6 +215,29 @@ func (sh *SubmissionHandler) CreateSubmission(c *gin.Context) {
 		})
 		return
 	}
+
+	fmt.Printf("Field id: %+v\n", req.FieldID)
+	fmt.Printf("Other field name: %+v\n", req.OtherFieldName)
+
+	// Get field name for Google Sheet
+	var fieldName string
+	if submission.FieldID != "" && submission.FieldID != "others" {
+		fieldDoc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
+		if err == nil {
+			var field models.Field
+			fieldDoc.DataTo(&field)
+			fieldName = field.Name
+		}
+	} else {
+		fieldName = submission.OtherFieldName
+	}
+
+	// Append to Google Sheet
+	go func() {
+		if err_gs := sh.googleSheetsService.AppendSubmission(submission, fieldName); err_gs != nil {
+			fmt.Printf("Failed to append submission to Google Sheet: %v\n", err_gs)
+		}
+	}()
 
 	c.JSON(http.StatusCreated, models.SuccessResponse{
 		Success: true,
@@ -256,27 +283,36 @@ func (sh *SubmissionHandler) GetSubmission(c *gin.Context) {
 		return
 	}
 
-	field_doc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
-
 	var field *models.Field
-	if err == nil {
-		field = &models.Field{}
-		field_doc.DataTo(field)
-	}
 
-	if err != nil {
-		fmt.Printf("Failed to get field for submission %s: %v\n", submission.ID, err)
-		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error:   "internal_error",
-			Message: "Failed to retrieve associated field data",
-		})
-		return
+	if submission.FieldID != "others" && submission.FieldID != "" {
+		field_doc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
+		if err == nil {
+			field = &models.Field{}
+			field_doc.DataTo(field)
+
+		}
+
+		if err != nil {
+			fmt.Printf("Failed to get field for submission %s: %v\n", submission.ID, err)
+			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to retrieve associated field data",
+			})
+			return
+		}
+	} else if submission.OtherFieldName != "" {
+		field = &models.Field{
+			ID:   "others",
+			Name: submission.OtherFieldName,
+		}
 	}
 
 	submissionResponse := models.SubmissionResponse{
 		ID:                submission.ID,
 		UserID:            submission.UserID,
 		FieldID:           submission.FieldID,
+		OtherFieldName:    submission.OtherFieldName,
 		Field:             field,
 		Date:              submission.Date,
 		GrowthStage:       submission.GrowthStage,
@@ -318,8 +354,8 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	user := currentUser.(*models.User)
 
-	var updateData map[string]interface{}
-	if err := c.ShouldBindJSON(&updateData); err != nil {
+	var req models.UpdateSubmissionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "invalid_request",
 			Message: err.Error(),
@@ -351,36 +387,48 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 		return
 	}
 
-	// Handle other_field_name if provided
-	if otherFieldName, ok := updateData["other_field_name"].(string); ok && otherFieldName != "" {
-		newField := &models.Field{
-			ID:        utils.GenerateID(),
-			Name:      otherFieldName,
-			OwnerID:   user.ID,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		_, err := sh.firestoreService.Fields().Doc(newField.ID).Set(ctx, newField)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to create new field",
-			})
-			return
-		}
-		updateData["field_id"] = newField.ID
-		delete(updateData, "other_field_name") // No need to store it in the submission document itself
+	updates := []firestore.Update{}
+
+	if req.Date != nil {
+		updates = append(updates, firestore.Update{Path: "date", Value: *req.Date})
+	}
+	if req.GrowthStage != nil {
+		updates = append(updates, firestore.Update{Path: "growth_stage", Value: *req.GrowthStage})
+	}
+	if req.PlantConditions != nil {
+		updates = append(updates, firestore.Update{Path: "plant_conditions", Value: *req.PlantConditions})
+	}
+	if req.TraitMeasurements != nil {
+		updates = append(updates, firestore.Update{Path: "trait_measurements", Value: *req.TraitMeasurements})
+	}
+	if req.Coordinates != nil {
+		updates = append(updates, firestore.Update{Path: "coordinates", Value: *req.Coordinates})
+	}
+	if req.Notes != nil {
+		updates = append(updates, firestore.Update{Path: "notes", Value: *req.Notes})
+	}
+	if req.Images != nil {
+		updates = append(updates, firestore.Update{Path: "images", Value: req.Images})
+	}
+	if req.Videos != nil {
+		updates = append(updates, firestore.Update{Path: "videos", Value: req.Videos})
+	}
+	if req.Audio != nil {
+		updates = append(updates, firestore.Update{Path: "audio", Value: req.Audio})
+	}
+	if req.Status != nil {
+		updates = append(updates, firestore.Update{Path: "status", Value: *req.Status})
+	}
+	if req.OtherFieldName != nil {
+		updates = append(updates, firestore.Update{Path: "other_field_name", Value: *req.OtherFieldName})
+		updates = append(updates, firestore.Update{Path: "field_id", Value: "others"})
+	} else if req.FieldID != nil {
+		updates = append(updates, firestore.Update{Path: "field_id", Value: *req.FieldID})
 	}
 
-	// Remove sensitive fields
-	delete(updateData, "id")
-	delete(updateData, "user_id")
-	delete(updateData, "created_at")
-	// Update document
-	updates := []firestore.Update{{Path: "updated_at", Value: time.Now()}}
-	for key, value := range updateData {
-		updates = append(updates, firestore.Update{Path: key, Value: value})
-	}
+	updates = append(updates, firestore.Update{Path: "updated_at", Value: time.Now()})
+
+	fmt.Printf("Updating submission %s with data: %+v\n", submissionID, updates)
 
 	_, err = sh.firestoreService.Submissions().Doc(submissionID).Update(ctx, updates)
 	if err != nil {
@@ -403,6 +451,26 @@ func (sh *SubmissionHandler) UpdateSubmission(c *gin.Context) {
 	}
 
 	doc.DataTo(&submission)
+
+	// Get field name for Google Sheet
+	var fieldName string
+	if submission.FieldID != "" && submission.FieldID != "others" {
+		fieldDoc, err := sh.firestoreService.Fields().Doc(submission.FieldID).Get(ctx)
+		if err == nil {
+			var field models.Field
+			fieldDoc.DataTo(&field)
+			fieldName = field.Name
+		}
+	} else {
+		fieldName = submission.OtherFieldName
+	}
+
+	// Update Google Sheet in a goroutine
+	go func() {
+		if err_gs := sh.googleSheetsService.UpdateSubmission(&submission, fieldName); err_gs != nil {
+			fmt.Printf("Failed to update submission in Google Sheet: %v\n", err_gs)
+		}
+	}()
 
 	c.JSON(http.StatusOK, models.SuccessResponse{
 		Success: true,

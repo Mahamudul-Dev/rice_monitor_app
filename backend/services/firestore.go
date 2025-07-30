@@ -62,6 +62,10 @@ func (fs *FirestoreService) Fields() *firestore.CollectionRef {
 	return fs.Client.Collection("fields")
 }
 
+func (fs *FirestoreService) Sheets() *firestore.CollectionRef {
+	return fs.Client.Collection("sheets")
+}
+
 // Context getter
 func (fs *FirestoreService) Context() context.Context {
 	return fs.ctx

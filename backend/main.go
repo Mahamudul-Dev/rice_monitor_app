@@ -46,7 +46,12 @@ func main() {
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(firestoreService)
 	userHandler := handlers.NewUserHandler(firestoreService)
-	submissionHandler := handlers.NewSubmissionHandler(firestoreService)
+	googleSheetsService, err := services.NewGoogleSheetsService(firestoreService)
+	if err != nil {
+		log.Fatal("Failed to initialize Google Sheets service:", err)
+	}
+
+	submissionHandler := handlers.NewSubmissionHandler(firestoreService, googleSheetsService)
 	mediaHandler := handlers.NewMediaHandler(storageService, firestoreService)
 	fieldHandler := handlers.NewFieldHandler(firestoreService)
 	analyticsHandler := handlers.NewAnalyticsHandler(firestoreService)

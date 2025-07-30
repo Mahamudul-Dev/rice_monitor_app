@@ -81,16 +81,16 @@ func (fh *FieldHandler) CreateField(c *gin.Context) {
 	user := currentUser.(*models.User)
 
 	field := models.Field{
-		ID:          utils.GenerateID(),
-		Name:        req.Name,
+		ID:            utils.GenerateID(),
+		Name:          req.Name,
 		RiceVariety:   req.RiceVariety,
 		TentativeDate: req.TentativeDate,
-		Location:    req.Location,
-		Coordinates: req.Coordinates,
-		Area:        req.Area,
-		OwnerID:     user.ID,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		Location:      req.Location,
+		Coordinates:   req.Coordinates,
+		Area:          req.Area,
+		OwnerID:       user.ID,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	ctx := fh.firestoreService.Context()

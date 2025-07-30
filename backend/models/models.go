@@ -23,13 +23,17 @@ type Field struct {
 	ID            string    `json:"id" firestore:"id"`
 	Name          string    `json:"name" firestore:"name"`
 	Location      string    `json:"location" firestore:"location"`
-	RiceVariety   string    `json:"rice_variety" firestore:"rice_variety"`
-	TentativeDate string    `json:"tentative_date" firestore:"tentative_date"`
 	Coordinates   Location  `json:"coordinates" firestore:"coordinates"`
 	Area          float64   `json:"area" firestore:"area"` // in hectares
+	RiceVariety   string    `json:"rice_variety" firestore:"rice_variety"`
+	TentativeDate string    `json:"tentative_date" firestore:"tentative_date"`
 	OwnerID       string    `json:"owner_id" firestore:"owner_id"`
 	CreatedAt     time.Time `json:"created_at" firestore:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" firestore:"updated_at"`
+}
+type Sheet struct {
+	SpreadsheetID   string `firestore:"spreadsheet_id" json:"spreadsheet_id"`
+	SpreadsheetName string `firestore:"spreadsheet_name" json:"spreadsheet_name"`
 }
 
 // Location represents GPS coordinates
@@ -66,6 +70,7 @@ type Submission struct {
 	ID                string            `json:"id" firestore:"id"`
 	UserID            string            `json:"user_id" firestore:"user_id"`
 	FieldID           string            `json:"field_id,omitempty" firestore:"field_id,omitempty"`
+	OtherFieldName    string            `json:"other_field_name" firestore:"other_field_name"`
 	Coordinates       Location          `json:"coordinates" firestore:"coordinates"`
 	Date              time.Time         `json:"date" firestore:"date"`
 	GrowthStage       string            `json:"growth_stage" firestore:"growth_stage"`
@@ -109,6 +114,8 @@ type CreateSubmissionRequest struct {
 
 // UpdateSubmissionRequest represents the request payload for updating submissions
 type UpdateSubmissionRequest struct {
+	FieldID           *string            `json:"field_id,omitempty"`
+	OtherFieldName    *string            `json:"other_field_name,omitempty"`
 	Date              *time.Time         `json:"date,omitempty"`
 	GrowthStage       *string            `json:"growth_stage,omitempty"`
 	PlantConditions   *PlantConditions   `json:"plant_conditions,omitempty"`
